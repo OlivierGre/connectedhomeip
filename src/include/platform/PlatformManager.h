@@ -47,6 +47,7 @@ class TraitManager;
 class ThreadStackManagerImpl;
 
 namespace Internal {
+class NFCManagerImpl;
 class BLEManagerImpl;
 template <class>
 class GenericConfigurationManagerImpl;
@@ -257,6 +258,7 @@ private:
     friend class FailSafeContext;
     friend class TraitManager;
     friend class ThreadStackManagerImpl;
+    friend class Internal::NFCManagerImpl;
     friend class Internal::BLEManagerImpl;
     template <class>
     friend class Internal::GenericPlatformManagerImpl;

@@ -492,6 +492,17 @@
 #define CHIP_DEVICE_CONFIG_LWIP_WIFI_AP_IF_NAME "ap"
 #endif
 
+// -------------------- NFC/CHIPoNFC Configuration --------------------
+
+/**
+ * CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+ *
+ * Enable support for chip-over-NFC (CHIPoNFC).
+ */
+#ifndef CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+#define CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC 0
+#endif
+
 // -------------------- BLE/CHIPoBLE Configuration --------------------
 
 /**

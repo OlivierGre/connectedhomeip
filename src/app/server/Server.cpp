@@ -55,6 +55,7 @@
 #include <system/SystemPacketBuffer.h>
 #include <system/TLVPacketBufferBackingStore.h>
 #include <transport/SessionManager.h>
+#include <transport/raw/NFC.h>
 
 #if defined(CHIP_SUPPORT_ENABLE_STORAGE_API_AUDIT) || defined(CHIP_SUPPORT_ENABLE_STORAGE_LOAD_TEST_AUDIT)
 #include <lib/support/PersistentStorageAudit.h>
@@ -74,6 +75,7 @@ using chip::Transport::UdpListenParameters;
 #if INET_CONFIG_ENABLE_TCP_ENDPOINT
 using chip::Transport::TcpListenParameters;
 #endif
+using chip::Transport::NfcListenParameters;
 
 namespace {
 
@@ -211,6 +213,8 @@ CHIP_ERROR Server::Init(const ServerInitParams & initParams)
                                .SetAddressType(IPAddressType::kIPv6)
                                .SetListenPort(mOperationalServicePort)
 #endif
+                               ,
+                           NfcListenParameters(nullptr)
     );
 
     SuccessOrExit(err);

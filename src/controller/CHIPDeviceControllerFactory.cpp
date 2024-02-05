@@ -168,6 +168,8 @@ CHIP_ERROR DeviceControllerFactory::InitSystemState(FactoryInitParams params)
                                                             .SetAddressType(IPAddressType::kIPv6)
                                                             .SetListenPort(params.listenPort)
 #endif
+                                                            ,
+                                                        Transport::NfcListenParameters(nullptr)
                                                             ));
 
     // TODO(#16231): All the new'ed state above/below in this method is never properly released or null-checked!

@@ -52,6 +52,7 @@
 #include <ble/Ble.h>
 #include <transport/raw/BLE.h>
 #endif
+#include <transport/raw/NFC.h>
 
 namespace chip {
 
@@ -77,6 +78,8 @@ using DeviceTransportMgr =
                  ,
                  Transport::TCP<kMaxDeviceTransportTcpActiveConnectionCount, kMaxDeviceTransportTcpPendingPackets>
 #endif
+                 ,
+                 Transport::NFC /* NFC */
                  >;
 
 namespace Controller {

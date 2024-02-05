@@ -32,10 +32,12 @@
 #include <platform/ConfigurationManager.h>
 #include <platform/ConnectivityManager.h>
 #include <platform/KeyValueStoreManager.h>
+#include <platform/internal/NFCManager.h>
 #include <platform/internal/BLEManager.h>
 
 #include "AndroidChipPlatform-JNI.h"
 #include "BLEManagerImpl.h"
+#include "NFCManagerImpl.h"
 #include "BleConnectCallback-JNI.h"
 #include "CommissionableDataProviderImpl.h"
 #include "DiagnosticDataProviderImpl.h"
@@ -115,6 +117,26 @@ JNI_METHOD(void, initChipStack)(JNIEnv * env, jobject self)
     chip::DeviceLayer::StackLock lock;
     CHIP_ERROR err = chip::DeviceLayer::PlatformMgr().InitChipStack();
     VerifyOrReturn(err == CHIP_NO_ERROR, ChipLogError(DeviceLayer, "Error initializing CHIP stack: %s", ErrorStr(err)));
+}
+
+// for NFCManager
+JNI_METHOD(void, nativeSetNFCManager)(JNIEnv *, jobject, jobject manager)
+{
+    ChipLogProgress(DeviceLayer, "(Android JNI) nativeSetNFCManager()");
+#if CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+    chip::DeviceLayer::StackLock lock;
+    chip::DeviceLayer::Internal::NFCMgrImpl().InitializeWithObject(manager);
+#endif // CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+}
+
+JNI_METHOD(void, onNfcTagResponse)(JNIEnv * env, jobject self, jbyteArray jbArray)
+{
+    ChipLogProgress(Controller, "%p (Android JNI) onNfcTagResponse()", self);
+
+#if CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+    chip::DeviceLayer::StackLock lock;
+    chip::DeviceLayer::Internal::NFCMgrImpl().OnNfcTagResponse(jbArray);
+#endif // CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
 }
 
 // for BLEManager

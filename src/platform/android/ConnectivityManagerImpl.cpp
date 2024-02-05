@@ -19,6 +19,7 @@
 #include <platform/internal/CHIPDeviceLayerInternal.h>
 
 #include <platform/ConnectivityManager.h>
+#include <platform/internal/NFCManager.h>
 #include <platform/internal/BLEManager.h>
 
 #include <cstdlib>

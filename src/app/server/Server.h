@@ -68,6 +68,7 @@
 #include <app/TimerDelegates.h>
 #include <app/reporting/ReportSchedulerImpl.h>
 #include <transport/raw/UDP.h>
+#include <transport/raw/NFC.h>
 
 #if CHIP_CONFIG_ENABLE_ICD_SERVER
 #include <app/icd/server/ICDManager.h> // nogncheck
@@ -100,6 +101,8 @@ using ServerTransportMgr = chip::TransportMgr<chip::Transport::UDP
                                               ,
                                               chip::Transport::TCP<kMaxTcpActiveConnectionCount, kMaxTcpPendingPackets>
 #endif
+                                              ,
+                                              chip::Transport::NFC
                                               >;
 
 #if CHIP_DEVICE_CONFIG_ENABLE_COMMISSIONER_DISCOVERY_CLIENT

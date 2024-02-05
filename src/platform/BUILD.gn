@@ -146,6 +146,10 @@ if (chip_device_platform != "none" && chip_device_platform != "external") {
       defines += [ "CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE=${chip_enable_ble}" ]
     }
 
+    if (chip_device_platform == "android" ) {
+      defines += [ "CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC=1" ]
+    }
+
     if (chip_enable_nfc) {
       defines += [
         "CHIP_DEVICE_CONFIG_ENABLE_NFC=1",

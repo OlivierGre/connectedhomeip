@@ -49,6 +49,7 @@ class ConfigurationManagerImpl;
 class DeviceControlServer;
 
 namespace Internal {
+class NFCManagerImpl;
 class BLEManagerImpl;
 template <class>
 class GenericPlatformManagerImpl;
@@ -159,6 +160,9 @@ private:
     friend class PlatformManagerImpl;
     friend class ConfigurationManagerImpl;
     friend class DeviceControlServer;
+#if CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+    friend class Internal::NFCManagerImpl;
+#endif
 #if CHIP_DEVICE_CONFIG_ENABLE_CHIPOBLE
     friend class Internal::BLEManagerImpl;
 #endif

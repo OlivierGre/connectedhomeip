@@ -23,6 +23,8 @@ static_library("raw") {
     "Base.h",
     "MessageHeader.cpp",
     "MessageHeader.h",
+    "NFC.cpp",
+    "NFC.h",
     "PeerAddress.h",
     "Tuple.h",
     "UDP.cpp",

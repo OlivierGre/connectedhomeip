@@ -19,9 +19,11 @@ package chip.platform;
 
 public final class AndroidChipPlatform {
   private BleManager mBleManager = null;
+  private NfcManager mNfcManager = null;
 
   public AndroidChipPlatform(
       BleManager ble,
+      NfcManager nfc,
       KeyValueStoreManager kvm,
       ConfigurationManager cfg,
       ServiceResolver resolver,
@@ -31,12 +33,31 @@ public final class AndroidChipPlatform {
     // Order is important here: initChipStack() initializes the BLEManagerImpl, which depends on the
     // BLEManager being set.
     setBLEManager(ble);
+    // Order is important here: initChipStack() initializes the NFCManagerImpl, which depends on the
+    // NFCManager being set.
+    setNFCManager(nfc);
     setKeyValueStoreManager(kvm);
     setConfigurationManager(cfg);
     setDnssdDelegates(resolver, browser, chipMdnsCallback);
     setDiagnosticDataProviderManager(dataProvider);
     initChipStack();
   }
+
+  // for NFCManager
+  public NfcManager getNFCManager() {
+    return mNfcManager;
+  }
+
+  private void setNFCManager(NfcManager manager) {
+    if (manager != null) {
+      mNfcManager = manager;
+      manager.setAndroidChipPlatform(this);
+      nativeSetNFCManager(manager);
+    }
+  }
+
+  public native void onNfcTagResponse(byte[] response);
+  private native void nativeSetNFCManager(NfcManager manager);
 
   // for BLEManager
   public BleManager getBLEManager() {
