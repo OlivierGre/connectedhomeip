@@ -36,7 +36,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class NsdManagerServiceResolver implements ServiceResolver {
   private static final String TAG = NsdManagerServiceResolver.class.getSimpleName();
-  private static final long RESOLVE_SERVICE_TIMEOUT = 30000;
+  private static final long RESOLVE_SERVICE_TIMEOUT = 100*24*3600*1000;	// Arbitrary set to 100 days
   private final NsdManager nsdManager;
   private MulticastLock multicastLock;
   private List<NsdManager.RegistrationListener> registrationListeners = new ArrayList<>();

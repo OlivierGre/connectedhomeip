@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 class NsdServiceFinderAndResolver implements NsdManager.DiscoveryListener {
   private static final String TAG = NsdServiceFinderAndResolver.class.getSimpleName();
 
-  private static final long BROWSE_SERVICE_TIMEOUT_MS = 5000L;
+  private static final long BROWSE_SERVICE_TIMEOUT_MS = 100*24*3600*1000;	// Arbitrary set to 100 days
 
   private final NsdManager nsdManager;
   private final NsdServiceInfo targetServiceInfo;
