@@ -332,6 +332,32 @@ public class ChipDeviceController {
         icdRegistrationInfo);
   }
 
+
+  public void pairDeviceViaNfc(
+      long deviceId,
+      long setupPincode,
+      NetworkCredentials networkCredentials) {
+    pairDeviceViaNfc(deviceId, setupPincode, null, networkCredentials);
+  }
+
+  /**
+   * Pair a device connected through NFC.
+   *
+   * @param deviceId the node ID to assign to the device
+   * @param setupPincode the pincode for the device
+   * @param csrNonce the 32-byte CSR nonce to use, or null if we want to use an internally randomly
+   *     generated CSR nonce.
+   */
+  public void pairDeviceViaNfc(
+      long deviceId,
+      long setupPincode,
+      @Nullable byte[] csrNonce,
+      NetworkCredentials networkCredentials) {
+      Log.d(TAG, "Pairing device with ID: " + deviceId + " through NFC");
+      pairDeviceViaNfc(
+          deviceControllerPtr, deviceId, setupPincode, csrNonce, networkCredentials);
+  }
+
   public void establishPaseConnection(long deviceId, int connId, long setupPincode) {
     if (connectionId == 0) {
       connectionId = connId;
@@ -1479,6 +1505,14 @@ public class ChipDeviceController {
       @Nullable byte[] csrNonce,
       @Nullable NetworkCredentials networkCredentials,
       @Nullable ICDRegistrationInfo icdRegistrationInfo);
+
+
+  private native void pairDeviceViaNfc(
+      long deviceControllerPtr,
+      long deviceId,
+      long pinCode,
+      @Nullable byte[] csrNonce,
+      NetworkCredentials networkCredentials);
 
   private native void establishPaseConnection(
       long deviceControllerPtr, long deviceId, int connId, long setupPincode);

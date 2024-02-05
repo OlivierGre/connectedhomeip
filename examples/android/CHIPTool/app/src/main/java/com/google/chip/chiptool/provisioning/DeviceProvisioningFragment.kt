@@ -19,7 +19,9 @@
 package com.google.chip.chiptool.provisioning
 
 import android.bluetooth.BluetoothGatt
+import android.content.Context
 import android.content.DialogInterface
+import android.nfc.Tag
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -35,6 +37,7 @@ import chip.devicecontroller.DeviceAttestationDelegate
 import chip.devicecontroller.ICDDeviceInfo
 import chip.devicecontroller.ICDRegistrationInfo
 import chip.devicecontroller.NetworkCredentials
+import com.google.chip.chiptool.CHIPToolActivity
 import com.google.chip.chiptool.ChipClient
 import com.google.chip.chiptool.GenericChipDeviceListener
 import com.google.chip.chiptool.NetworkCredentialsParcelable
@@ -47,6 +50,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @ExperimentalCoroutinesApi
 class DeviceProvisioningFragment : Fragment() {
@@ -82,7 +86,14 @@ class DeviceProvisioningFragment : Fragment() {
         if (deviceInfo.ipAddress != null) {
           pairDeviceWithAddress()
         } else {
-          startConnectingToDevice()
+          val doCommissioningOverNFC = true
+
+          var androidNfcTag = CHIPToolActivity.getAndroidNfcTag();
+          if ((androidNfcTag != null) && (doCommissioningOverNFC)) {
+            startConnectingToDeviceViaNfc(androidNfcTag)
+          } else {
+            startConnectingToDevice()
+          }
         }
       }
     }
@@ -177,7 +188,12 @@ class DeviceProvisioningFragment : Fragment() {
     )
   }
 
+  override fun getContext(): Context? {
+    return requireActivity() as Context
+  }
+
   private fun startConnectingToDevice() {
+
     if (gatt != null) {
       return
     }
@@ -200,6 +216,7 @@ class DeviceProvisioningFragment : Fragment() {
         R.string.rendezvous_over_ble_connecting_text,
         device.name ?: device.address.toString()
       )
+
       gatt = bluetoothManager.connect(requireContext(), device)
 
       showMessage(R.string.rendezvous_over_ble_pairing_text)
@@ -227,6 +244,43 @@ class DeviceProvisioningFragment : Fragment() {
       setAttestationDelegate()
 
       deviceController.pairDevice(gatt, connId, deviceId, deviceInfo.setupPinCode, network)
+      DeviceIdUtil.setNextAvailableId(requireContext(), deviceId + 1)
+    }
+  }
+
+  private fun startConnectingToDeviceViaNfc(nfcTag : Tag) {
+
+    Log.d(TAG, "startConnectingToDeviceViaNfc. nfcTag: " + nfcTag.toString())
+
+    // Set Matter Progress Callback
+    Log.d(TAG, "setMatterProgressCallback")
+    ChipClient.getDeviceController(requireActivity()).setMatterProgressCallback(ChipMatterProgressCallback())
+
+    ChipClient.getAndroidNfcManager().setNFCTag(nfcTag)
+
+    scope.launch {
+
+      displayCommissioningProgress();
+
+      deviceController.setCompletionListener(ConnectionCallback())
+
+      val deviceId = DeviceIdUtil.getNextAvailableId(requireContext())
+      var network: NetworkCredentials? = null
+      var networkParcelable = checkNotNull(networkCredentialsParcelable)
+
+      val wifi = networkParcelable.wiFiCredentials
+      if (wifi != null) {
+        network = NetworkCredentials.forWiFi(NetworkCredentials.WiFiCredentials(wifi.ssid, wifi.password))
+      }
+
+      val thread = networkParcelable.threadCredentials
+      if (thread != null) {
+        network = NetworkCredentials.forThread(NetworkCredentials.ThreadCredentials(thread.operationalDataset))
+      }
+
+      setAttestationDelegate()
+
+      deviceController.pairDeviceViaNfc(deviceId, deviceInfo.setupPinCode, network)
       DeviceIdUtil.setNextAvailableId(requireContext(), deviceId + 1)
     }
   }
@@ -325,6 +379,18 @@ class DeviceProvisioningFragment : Fragment() {
     fun onCommissioningComplete(code: Long, nodeId: Long = 0L)
   }
 
+  fun showToast(resource_id: Int, vararg formatArgs: Any?) {
+    requireActivity().runOnUiThread { // This function can be called from a background thread so it may happen after the
+      // destruction of the activity. In such case, getResmessageources() may be null.
+      val resources = resources
+      if (resources != null) {
+        val message = resources.getString(resource_id, *formatArgs)
+        Log.d(TAG, message)
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+      }
+    }
+  }
+
   companion object {
     private const val TAG = "DeviceProvisioningFragment"
     private const val ARG_DEVICE_INFO = "device_info"
@@ -337,6 +403,63 @@ class DeviceProvisioningFragment : Fragment() {
      * This time depends on the Commissioning timeout of your app.
      */
     private const val DEVICE_ATTESTATION_FAILED_TIMEOUT = 600
+
+    protected const val MY_PREFS_NAME = "TEMP_KOTLIN_Prefs"
+    private const val HRM_SAMPLES_COUNT = 60
+    const val TYPE4_EXTENDED_ADPU_MAX_SIZE = 63 * 1024
+
+    // Max length for a Type4 R-APDU (as defined in the NFC Forum Type4 Tag TS)
+    const val TYPE4_MAX_RADPU_SIZE = 246
+
+    // Max length for a Type4 C-APDU (as defined in the NFC Forum Type4 Tag TS)
+    const val TYPE4_MAX_CAPDU_SIZE = 246
+    const val TYPE4_HEADER_SIZE = 4
+    const val TYPE4_CMD_SELECT = 0xA4.toByte()
+    const val TYPE4_CMD_SELECT_BY_NAME = 0x04.toByte()
+    const val TYPE4_CMD_SELECT_BY_FILE_ID = 0x00.toByte()
+    const val TYPE4_CMD_FIRST_OR_ONLY_OCCURENCE = 0x0C.toByte()
+    const val TYPE4_CMD_READ_BINARY = 0xB0.toByte()
+    @Throws(Exception::class)
+    fun convertIntTo2BytesHexaFormat(numberToConvert: Int): ByteArray {
+      return if (numberToConvert >= 0 && numberToConvert <= 65535) {
+        byteArrayOf(
+          (numberToConvert and '\uff00'.code shr 8).toByte(),
+          (numberToConvert and 255).toByte()
+        )
+      } else {
+        throw Exception()
+      }
+    }
+
+    /**
+     * Allocate a buffer of a requested size containing 01234567890123...etc
+     * @param dataLength
+     * @return
+     */
+    fun allocateAndInitData(dataLength: Int): ByteArray {
+      val alphabet = "0123456789".toCharArray()
+      val data = ByteArray(dataLength)
+      for (i in 0 until dataLength) {
+        data[i] = alphabet[i % 10].code.toByte()
+      }
+      return data
+    }
+
+    fun convertHexByteArrayToString(`in`: ByteArray?): String {
+      val builder = StringBuilder()
+      for (b in `in`!!) {
+        builder.append(String.format("%02x ", b))
+      }
+      return builder.toString()
+    }
+
+    fun convertByteToUnsignedInt(byteToConvert: Byte): Int {
+      return byteToConvert.toInt() and 255
+    }
+
+    fun convertIntToHexFormatString(numberToConvert: Int): String {
+      return String.format("%04x", numberToConvert).uppercase(Locale.getDefault())
+    }
 
     /**
      * Return a new instance of [DeviceProvisioningFragment]. [networkCredentialsParcelable] can be

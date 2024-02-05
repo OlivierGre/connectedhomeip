@@ -84,6 +84,7 @@ public class TvCastingApp {
     AndroidChipPlatform chipPlatform =
         new AndroidChipPlatform(
             new AndroidBleManager(),
+            new AndroidNfcManager(),
             new PreferencesKeyValueStoreManager(applicationContext),
             appParameters.getConfigurationManager(),
             nsdManagerServiceResolver,

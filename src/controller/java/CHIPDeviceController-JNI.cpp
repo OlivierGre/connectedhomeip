@@ -642,6 +642,49 @@ exit:
     }
 }
 
+
+JNI_METHOD(void, pairDeviceViaNfc)
+(JNIEnv * env, jobject self, jlong handle, jlong deviceId, jlong pinCode, jbyteArray csrNonce,
+ jobject networkCredentials)
+{
+    chip::DeviceLayer::StackLock lock;
+    CHIP_ERROR err                           = CHIP_NO_ERROR;
+    AndroidDeviceControllerWrapper * wrapper = AndroidDeviceControllerWrapper::FromJNIHandle(handle);
+
+    ChipLogProgress(Controller, "%lu (JNI) pairDeviceViaNfc() called with device ID and pincode", handle);
+
+    if (!chip::CanCastTo<uint32_t>(pinCode))
+    {
+        JniReferences::GetInstance().ThrowError(env, sChipDeviceControllerExceptionCls, CHIP_ERROR_INVALID_ARGUMENT);
+        return;
+    }
+
+    RendezvousParameters rendezvousParams = RendezvousParameters()
+                                                .SetSetupPINCode(static_cast<uint32_t>(pinCode))
+                                                .SetPeerAddress(Transport::PeerAddress::NFC());
+
+    CommissioningParameters commissioningParams = wrapper->GetCommissioningParameters();
+    wrapper->ApplyNetworkCredentials(commissioningParams, networkCredentials);
+
+    if (csrNonce != nullptr)
+    {
+        JniByteArray jniCsrNonce(env, csrNonce);
+        ChipLogProgress(Controller, "JNI pairDevice");
+        commissioningParams.SetCSRNonce(jniCsrNonce.byteSpan());
+    }
+    if (wrapper->GetDeviceAttestationDelegateBridge() != nullptr)
+    {
+        commissioningParams.SetDeviceAttestationDelegate(wrapper->GetDeviceAttestationDelegateBridge());
+    }
+    err = wrapper->Controller()->PairDevice(deviceId, rendezvousParams, commissioningParams);
+
+    if (err != CHIP_NO_ERROR)
+    {
+        ChipLogError(Controller, "Failed to pair the device through NFC");
+        JniReferences::GetInstance().ThrowError(env, sChipDeviceControllerExceptionCls, err);
+    }
+}
+
 JNI_METHOD(void, pairDevice)
 (JNIEnv * env, jobject self, jlong handle, jlong deviceId, jint connObj, jlong pinCode, jbyteArray csrNonce,
  jobject networkCredentials, jobject icdRegistrationInfo)

@@ -286,4 +286,12 @@
 
     <string name="icd_btn_text">Intermittently Connected Device</string>
     <string name="icd_registration_completed">ICD device registration completed, How to trigger to switch to Active Mode : %1$s</string>
+
+    <string name="command_failed">Command failed!</string>
+    <string name="not_a_type4_tag">Not a Type 4 Tag!</string>
+    <string name="no_ndef_message_found">Not NDEF message found!</string>
+    <string name="warning_extended_apdu">Warning! Extended APDU not supported by this phone!</string>
+    <string name="not_a_matter_uri">Not a MATTER URI!</string>
+    <string name="invalid_type4_response">Invalid Type 4 response</string>
+
 </resources>
