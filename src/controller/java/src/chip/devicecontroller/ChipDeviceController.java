@@ -484,6 +484,10 @@ public class ChipDeviceController {
     unpairDeviceCallback(deviceControllerPtr, deviceId, callback);
   }
 
+  public void setMatterProgressCallback(MatterProgressCallback callback) {
+    setMatterProgressCallback(deviceControllerPtr, callback);
+  }
+
   /**
    * This function stops a pairing or commissioning process that is in progress.
    *
@@ -1535,6 +1539,7 @@ public class ChipDeviceController {
       long deviceControllerPtr, long deviceId, UnpairDeviceCallback callback);
 
   private native void stopDevicePairing(long deviceControllerPtr, long deviceId);
+  private native void setMatterProgressCallback(long deviceControllerPtr, MatterProgressCallback callback);
 
   private native long getDeviceBeingCommissionedPointer(long deviceControllerPtr, long nodeId);
 

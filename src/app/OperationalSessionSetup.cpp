@@ -197,6 +197,11 @@ void OperationalSessionSetup::Connect(Callback::Callback<OnDeviceConnected> * on
     Connect(onConnection, nullptr, onSetupFailure, transportPayloadCapability);
 }
 
+void OperationalSessionSetup::SetOnCASESetupStartingListener(Callback::Callback<OnCASESetupStarting> * onCASESetupStarting)
+{
+    mOnCASESetupStarting = onCASESetupStarting;
+}
+
 void OperationalSessionSetup::UpdateDeviceData(const Transport::PeerAddress & addr, const ReliableMessageProtocolConfig & config)
 {
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
@@ -308,6 +313,13 @@ CHIP_ERROR OperationalSessionSetup::EstablishConnection(const ReliableMessagePro
     ReturnErrorCodeIf(mCASEClient == nullptr, CHIP_ERROR_NO_MEMORY);
 
     MATTER_LOG_METRIC_BEGIN(kMetricDeviceCASESession);
+
+    // Notify that the setup of CASE secure session is starting
+    if (mOnCASESetupStarting != nullptr)
+    {
+        mOnCASESetupStarting->mCall(mOnCASESetupStarting->mContext);
+    }
+
     CHIP_ERROR err = mCASEClient->EstablishSession(mInitParams, mPeerId, mDeviceAddress, config, this);
     if (err != CHIP_NO_ERROR)
     {

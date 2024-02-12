@@ -111,6 +111,13 @@ private:
 };
 
 /**
+ * @brief Callback prototype when CASE secure session setup is starting.
+ *
+ */
+typedef void (*OnCASESetupStarting)(void * context);
+
+
+/**
  * @brief Callback prototype when secure session is established.
  *
  * Callback implementations are not supposed to store the exchangeMgr or the sessionHandle. Older
@@ -240,6 +247,8 @@ public:
 
     bool IsForAddressUpdate() const { return mPerformingAddressUpdate; }
 
+    void SetOnCASESetupStartingListener(Callback::Callback<OnCASESetupStarting> * onCASESetupStarting);
+
     //////////// SessionEstablishmentDelegate Implementation ///////////////
     void OnSessionEstablished(const SessionHandle & session) override;
     void OnSessionEstablishmentError(CHIP_ERROR error, SessionEstablishmentStage stage) override;
@@ -312,6 +321,8 @@ private:
     Callback::CallbackDeque mConnectionSuccess;
     Callback::CallbackDeque mConnectionFailure;
     Callback::CallbackDeque mSetupFailure;
+
+    Callback::Callback<OnCASESetupStarting> * mOnCASESetupStarting;
 
     OperationalSessionReleaseDelegate * mReleaseDelegate;
 

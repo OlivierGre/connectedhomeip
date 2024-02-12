@@ -76,6 +76,20 @@
 #endif
 #include <controller/DeviceDiscoveryDelegate.h>
 
+
+// Commissioning progress
+#define PASE 10
+#define CHECK_DEVICE_ATTESTATION 20
+#define SET_NETWORK_OPERATIONAL_CERTIFICATE 30
+#define SET_ACCESS_CONTROL_LIST 40
+#define SET_OPERATIONAL_NETWORK 50
+#define PLEASE_SWITCH_ON_THE_DEVICE 60
+#define LAUNCH_OF_OPERATIONAL_NETWORK 70
+#define SRP_CONFIGURATION 80
+#define CASE 90
+#define DEVICE_COMMISSIONED_SUCCESSFULLY 100
+
+
 namespace chip {
 
 namespace Controller {
@@ -250,6 +264,10 @@ public:
         mSystemState->CASESessionMgr()->FindOrEstablishSession(ScopedNodeId(peerNodeId, GetFabricIndex()), onConnection, onFailure);
         return CHIP_NO_ERROR;
     }
+
+    jobject mMatterJavaCallback;
+    jmethodID mMatterProgressCallback = nullptr;
+    void setMatterProgressCallback(jobject jCallbackObject);
 
     /**
      * This function finds the device corresponding to deviceId, and establishes
@@ -629,6 +647,8 @@ public:
 
     void RendezvousCleanup(CHIP_ERROR status);
 
+    void sendMatterCommissioningProgression(uint32_t progress);
+
     void PerformCommissioningStep(DeviceProxy * device, CommissioningStage step, CommissioningParameters & params,
                                   CommissioningDelegate * delegate, EndpointId endpoint, Optional<System::Clock::Timeout> timeout);
 
@@ -913,6 +933,7 @@ private:
     /* Callback called when adding root cert to device results in failure */
     static void OnRootCertFailureResponse(void * context, CHIP_ERROR error);
 
+    static void OnCASESetupStartingFn(void * context);
     static void OnDeviceConnectedFn(void * context, Messaging::ExchangeManager & exchangeMgr, const SessionHandle & sessionHandle);
     static void OnDeviceConnectionFailureFn(void * context, const ScopedNodeId & peerId, CHIP_ERROR error);
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
@@ -1063,6 +1084,7 @@ private:
 
     bool IsAttestationInformationMissing(const CommissioningParameters & params);
 
+    chip::Callback::Callback<OnCASESetupStarting> mOnCASESetupStartingCallback;
     chip::Callback::Callback<OnDeviceConnected> mOnDeviceConnectedCallback;
     chip::Callback::Callback<OnDeviceConnectionFailure> mOnDeviceConnectionFailureCallback;
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES

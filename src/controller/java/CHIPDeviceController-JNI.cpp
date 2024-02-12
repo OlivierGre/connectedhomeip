@@ -1339,6 +1339,15 @@ JNI_METHOD(void, unpairDeviceCallback)(JNIEnv * env, jobject self, jlong handle,
     }
 }
 
+JNI_METHOD(void, setMatterProgressCallback)(JNIEnv * env, jobject self, jlong handle, jobject jCallbackObject)
+{
+    AndroidDeviceControllerWrapper * wrapper = AndroidDeviceControllerWrapper::FromJNIHandle(handle);
+
+    ChipLogProgress(Controller, "(JNI) setMatterProgressCallback() called with callback object");
+
+    wrapper->Controller()->setMatterProgressCallback(jCallbackObject);
+}
+
 JNI_METHOD(void, stopDevicePairing)(JNIEnv * env, jobject self, jlong handle, jlong deviceId)
 {
     chip::DeviceLayer::StackLock lock;

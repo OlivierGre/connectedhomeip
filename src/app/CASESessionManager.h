@@ -78,7 +78,7 @@ public:
      * attemptCount can be used to automatically retry multiple times if session
      * setup is not successful.
      */
-    void FindOrEstablishSession(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection,
+    OperationalSessionSetup *  FindOrEstablishSession(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection,
                                 Callback::Callback<OnDeviceConnectionFailure> * onFailure,
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
                                 uint8_t attemptCount = 1, Callback::Callback<OnDeviceConnectionRetry> * onRetry = nullptr,
@@ -108,7 +108,7 @@ public:
      * @param onRetry A callback to be called on a retry attempt (enabled by a config flag).
      * @param transportPayloadCapability An indicator of what payload types the session needs to be able to transport.
      */
-    void FindOrEstablishSession(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection,
+    OperationalSessionSetup * FindOrEstablishSession(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection,
                                 Callback::Callback<OperationalSessionSetup::OnSetupFailure> * onSetupFailure,
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
                                 uint8_t attemptCount = 1, Callback::Callback<OnDeviceConnectionRetry> * onRetry = nullptr,
@@ -136,7 +136,7 @@ public:
      * @param onRetry A callback to be called on a retry attempt (enabled by a config flag).
      * @param transportPayloadCapability An indicator of what payload types the session needs to be able to transport.
      */
-    void FindOrEstablishSession(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection, std::nullptr_t,
+    OperationalSessionSetup * FindOrEstablishSession(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection, std::nullptr_t,
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
                                 uint8_t attemptCount = 1, Callback::Callback<OnDeviceConnectionRetry> * onRetry = nullptr,
 #endif // CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
@@ -170,7 +170,7 @@ private:
         const ScopedNodeId & peerId,
         const TransportPayloadCapability transportPayloadCapability = TransportPayloadCapability::kMRPPayload) const;
 
-    void FindOrEstablishSessionHelper(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection,
+    OperationalSessionSetup * FindOrEstablishSessionHelper(const ScopedNodeId & peerId, Callback::Callback<OnDeviceConnected> * onConnection,
                                       Callback::Callback<OnDeviceConnectionFailure> * onFailure,
                                       Callback::Callback<OperationalSessionSetup::OnSetupFailure> * onSetupFailure,
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES

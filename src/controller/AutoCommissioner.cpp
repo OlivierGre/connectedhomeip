@@ -855,6 +855,12 @@ CHIP_ERROR AutoCommissioner::CommissioningStepFinished(CHIP_ERROR err, Commissio
             mDeviceCommissioningInfo = ReadCommissioningInfo();
             mNeedsDST                = false;
             return CHIP_NO_ERROR;
+        case CommissioningStage::kSendNOC:
+            if (mCommissioner != nullptr)
+            {
+                mCommissioner->sendMatterCommissioningProgression(SET_OPERATIONAL_NETWORK);
+            }
+            break;
         default:
             break;
         }

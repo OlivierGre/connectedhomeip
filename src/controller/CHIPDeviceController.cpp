@@ -74,6 +74,9 @@
 #include <string>
 #include <time.h>
 
+chip::Controller::DeviceController * pDeviceController;
+
+
 using namespace chip::Inet;
 using namespace chip::System;
 using namespace chip::Transport;
@@ -440,6 +443,26 @@ CHIP_ERROR DeviceController::GetPeerAddress(NodeId nodeId, Transport::PeerAddres
     return CHIP_NO_ERROR;
 }
 
+void DeviceController::setMatterProgressCallback(jobject jCallbackObject)
+{
+    ChipLogProgress(Controller, "DeviceController::setMatterProgressCallback");
+
+    // Save the java callback (for later use)
+    JNIEnv * env  = JniReferences::GetInstance().GetEnvForCurrentThread();
+    mMatterJavaCallback = env->NewGlobalRef(jCallbackObject);
+
+    jclass callbackClass = env->GetObjectClass(jCallbackObject);
+
+    mMatterProgressCallback = env->GetMethodID(callbackClass, "progressNotification", "(I)V");
+    if (mMatterProgressCallback == nullptr)
+    {
+        ChipLogError(Controller, "Failed to access callback 'progressNotification' method");
+        env->ExceptionClear();
+    }
+
+    pDeviceController = this;
+}
+
 CHIP_ERROR DeviceController::ComputePASEVerifier(uint32_t iterations, uint32_t setupPincode, const ByteSpan & salt,
                                                  Spake2pVerifier & outVerifier)
 {
@@ -457,7 +480,9 @@ ControllerDeviceInitParams DeviceController::GetControllerDeviceInitParams()
 }
 
 DeviceCommissioner::DeviceCommissioner() :
-    mOnDeviceConnectedCallback(OnDeviceConnectedFn, this), mOnDeviceConnectionFailureCallback(OnDeviceConnectionFailureFn, this),
+    mOnCASESetupStartingCallback(OnCASESetupStartingFn, this),
+    mOnDeviceConnectedCallback(OnDeviceConnectedFn, this),
+    mOnDeviceConnectionFailureCallback(OnDeviceConnectionFailureFn, this),
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
     mOnDeviceConnectionRetryCallback(OnDeviceConnectionRetryFn, this),
 #endif // CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
@@ -1156,6 +1181,7 @@ CHIP_ERROR DeviceCommissioner::SendAttestationRequestCommand(DeviceProxy * devic
     MATTER_TRACE_SCOPE("SendAttestationRequestCommand", "DeviceCommissioner");
     ChipLogDetail(Controller, "Sending Attestation request to %p device", device);
     VerifyOrReturnError(device != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
+    sendMatterCommissioningProgression(CHECK_DEVICE_ATTESTATION);
 
     OperationalCredentials::Commands::AttestationRequest::Type request;
     request.attestationNonce = attestationNonce;
@@ -1453,6 +1479,7 @@ CHIP_ERROR DeviceCommissioner::ValidateCSR(DeviceProxy * proxy, const ByteSpan &
     MATTER_TRACE_SCOPE("ValidateCSR", "DeviceCommissioner");
     VerifyOrReturnError(mState == State::Initialized, CHIP_ERROR_INCORRECT_STATE);
     VerifyOrReturnError(mDeviceAttestationVerifier != nullptr, CHIP_ERROR_INCORRECT_STATE);
+    sendMatterCommissioningProgression(SET_NETWORK_OPERATIONAL_CERTIFICATE);
 
     P256PublicKey dacPubkey;
     ReturnErrorOnFailure(ExtractPubkeyFromX509Cert(dac, dacPubkey));
@@ -1712,6 +1739,8 @@ CHIP_ERROR DeviceCommissioner::OnOperationalCredentialsProvisioningCompletion(De
 {
     MATTER_TRACE_SCOPE("OnOperationalCredentialsProvisioningCompletion", "DeviceCommissioner");
     ChipLogProgress(Controller, "Operational credentials provisioned on device %p", device);
+    sendMatterCommissioningProgression(SET_ACCESS_CONTROL_LIST);
+
     VerifyOrReturnError(device != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
 
     if (mPairingDelegate != nullptr)
@@ -1993,6 +2022,13 @@ void DeviceCommissioner::CommissioningStageComplete(CHIP_ERROR err, Commissionin
         mDeviceBeingCommissioned     = proxy;
         CleanupCommissioning(proxy, nodeId, completionStatus);
     }
+}
+
+void DeviceCommissioner::OnCASESetupStartingFn(void * context)
+{
+    ChipLogProgress(Controller, "DeviceCommissioner::OnCASESetupStartingFn()");
+    DeviceCommissioner * commissioner = static_cast<DeviceCommissioner *>(context);
+    commissioner->sendMatterCommissioningProgression(CASE);
 }
 
 void DeviceCommissioner::OnDeviceConnectedFn(void * context, Messaging::ExchangeManager & exchangeMgr,
@@ -2768,6 +2804,21 @@ void DeviceCommissioner::SendCommissioningReadRequest(DeviceProxy * proxy, Optio
     mReadClient     = std::move(readClient);
 }
 
+// Function called to indicate the progression of Matter Commissioning
+void DeviceCommissioner::sendMatterCommissioningProgression(uint32_t progress)
+{
+    //ChipLogProgress(Controller, "sendMatterCommissioningProgression %d", progress);
+
+    if ((pDeviceController != nullptr) && (pDeviceController->mMatterProgressCallback != nullptr))
+    {
+        JNIEnv * env  = chip::JniReferences::GetInstance().GetEnvForCurrentThread();
+        jint value = (jint) progress;
+
+        env->CallVoidMethod(pDeviceController->mMatterJavaCallback, pDeviceController->mMatterProgressCallback, value);
+    }
+
+}
+
 void DeviceCommissioner::PerformCommissioningStep(DeviceProxy * proxy, CommissioningStage step, CommissioningParameters & params,
                                                   CommissioningDelegate * delegate, EndpointId endpoint,
                                                   Optional<System::Clock::Timeout> timeout)
@@ -3410,16 +3461,20 @@ void DeviceCommissioner::PerformCommissioningStep(DeviceProxy * proxy, Commissio
     }
     case CommissioningStage::kFindOperationalForStayActive:
     case CommissioningStage::kFindOperationalForCommissioningComplete: {
+        sendMatterCommissioningProgression(PLEASE_SWITCH_ON_THE_DEVICE);
         // If there is an error, CommissioningStageComplete will be called from OnDeviceConnectionFailureFn.
         auto scopedPeerId = GetPeerScopedId(proxy->GetDeviceId());
         MATTER_LOG_METRIC_BEGIN(kMetricDeviceCommissioningOperationalSetup);
-        mSystemState->CASESessionMgr()->FindOrEstablishSession(scopedPeerId, &mOnDeviceConnectedCallback,
+        OperationalSessionSetup * operationalSessionSetup = mSystemState->CASESessionMgr()->FindOrEstablishSession(scopedPeerId, &mOnDeviceConnectedCallback,
                                                                &mOnDeviceConnectionFailureCallback
 #if CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
-                                                               ,
-                                                               /* attemptCount = */ 3, &mOnDeviceConnectionRetryCallback
+                                                           ,
+                                                           /* attemptCount = */ 3, &mOnDeviceConnectionRetryCallback
 #endif // CHIP_DEVICE_CONFIG_ENABLE_AUTOMATIC_CASE_RETRIES
         );
+
+        // Register a callback to be notified when CASE setup is starting
+        operationalSessionSetup->SetOnCASESetupStartingListener(&mOnCASESetupStartingCallback);
     }
     break;
     case CommissioningStage::kICDSendStayActive: {
@@ -3447,6 +3502,7 @@ void DeviceCommissioner::PerformCommissioningStep(DeviceProxy * proxy, Commissio
     break;
     case CommissioningStage::kSendComplete: {
         // CommissioningComplete command happens over the CASE connection.
+        sendMatterCommissioningProgression(DEVICE_COMMISSIONED_SUCCESSFULLY);
         GeneralCommissioning::Commands::CommissioningComplete::Type request;
         CHIP_ERROR err =
             SendCommissioningCommand(proxy, request, OnCommissioningCompleteResponse, OnBasicFailure, endpoint, timeout);
