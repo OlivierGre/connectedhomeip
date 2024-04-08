@@ -468,6 +468,9 @@ public:
 
 #endif // INET_CONFIG_ENABLE_TCP_ENDPOINT
 
+    void OnMessageError(const Transport::PeerAddress & source) override;
+
+
     Optional<SessionHandle> CreateUnauthenticatedSession(const Transport::PeerAddress & peerAddress,
                                                          const ReliableMessageProtocolConfig & config)
     {

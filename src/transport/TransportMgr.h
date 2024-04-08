@@ -58,6 +58,8 @@ public:
     virtual void OnMessageReceived(const Transport::PeerAddress & source, System::PacketBufferHandle && msgBuf,
                                    Transport::MessageTransportContext * ctxt = nullptr) = 0;
 
+    virtual void OnMessageError(const Transport::PeerAddress & source) = 0;
+
 #if INET_CONFIG_ENABLE_TCP_ENDPOINT
     /**
      * @brief
@@ -72,6 +74,7 @@ public:
 
     virtual void HandleConnectionReceived(Transport::ActiveTCPConnectionState * conn){};
 #endif // INET_CONFIG_ENABLE_TCP_ENDPOINT
+
 };
 
 template <typename... TransportTypes>

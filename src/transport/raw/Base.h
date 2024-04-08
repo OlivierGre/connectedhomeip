@@ -48,14 +48,18 @@ class RawTransportDelegate
 {
 public:
     virtual ~RawTransportDelegate() {}
+
     virtual void HandleMessageReceived(const Transport::PeerAddress & peerAddress, System::PacketBufferHandle && msg,
                                        MessageTransportContext * ctxt = nullptr) = 0;
+
+    virtual void HandleMessageError(const Transport::PeerAddress & peerAddress) = 0;
 
 #if INET_CONFIG_ENABLE_TCP_ENDPOINT
     virtual void HandleConnectionReceived(ActiveTCPConnectionState * conn){};
     virtual void HandleConnectionAttemptComplete(ActiveTCPConnectionState * conn, CHIP_ERROR conErr){};
     virtual void HandleConnectionClosed(ActiveTCPConnectionState * conn, CHIP_ERROR conErr){};
 #endif // INET_CONFIG_ENABLE_TCP_ENDPOINT
+
 };
 
 /**
@@ -156,6 +160,13 @@ protected:
 #endif // INET_CONFIG_ENABLE_TCP_ENDPOINT
 
     RawTransportDelegate * mDelegate = nullptr;
+
+    void HandleMessageError(const PeerAddress & source)
+    {
+        ChipLogProgress(Inet, "Base::HandleMessageError");
+        mDelegate->HandleMessageError(source);
+    }
+
 };
 
 } // namespace Transport

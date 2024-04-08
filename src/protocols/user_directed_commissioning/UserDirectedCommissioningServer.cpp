@@ -34,6 +34,11 @@ namespace chip {
 namespace Protocols {
 namespace UserDirectedCommissioning {
 
+void UserDirectedCommissioningServer::OnMessageError(const Transport::PeerAddress & source)
+{
+    ChipLogProgress(AppServer, "UserDirectedCommissioningServer::OnMessageError");
+}
+
 void UserDirectedCommissioningServer::OnMessageReceived(const Transport::PeerAddress & source, System::PacketBufferHandle && msg,
                                                         Transport::MessageTransportContext * ctxt)
 {

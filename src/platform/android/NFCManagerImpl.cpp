@@ -128,6 +128,22 @@ CHIP_ERROR NFCManagerImpl::OnNfcTagResponse(jbyteArray jbArray)
     return CHIP_NO_ERROR;
 }
 
+CHIP_ERROR NFCManagerImpl::OnNfcTagError()
+{
+    ChipLogProgress(DeviceLayer, "NFCManagerImpl::OnNfcTagError()");
+
+    if (mNFCBase == NULL)
+    {
+        ChipLogError(DeviceLayer, "Error! mNFCBase is null!");
+        return CHIP_ERROR_INCORRECT_STATE;
+    }
+
+    mNFCBase->OnNfcTagError();
+
+    return CHIP_NO_ERROR;
+}
+
+
 } // namespace Internal
 } // namespace DeviceLayer
 } // namespace chip

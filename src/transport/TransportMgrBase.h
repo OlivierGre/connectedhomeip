@@ -66,6 +66,8 @@ public:
     void HandleMessageReceived(const Transport::PeerAddress & peerAddress, System::PacketBufferHandle && msg,
                                Transport::MessageTransportContext * ctxt = nullptr) override;
 
+    void HandleMessageError(const Transport::PeerAddress & peerAddress) override;
+
 private:
     TransportMgrDelegate * mSessionManager = nullptr;
     Transport::Base * mTransport           = nullptr;

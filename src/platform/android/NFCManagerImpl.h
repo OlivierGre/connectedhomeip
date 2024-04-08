@@ -51,6 +51,7 @@ public:
     void InitializeWithObject(jobject managerObject);
 
     CHIP_ERROR OnNfcTagResponse(jbyteArray jbArray);
+    CHIP_ERROR OnNfcTagError();
 
     // ===== Members that implement virtual methods on NfcApplicationDelegate.
 

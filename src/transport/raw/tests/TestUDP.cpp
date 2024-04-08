@@ -68,6 +68,11 @@ public:
 
         ReceiveHandlerCallCount++;
     }
+
+    void OnMessageError(const Transport::PeerAddress & source) override
+    {
+    }
+
 };
 
 } // namespace

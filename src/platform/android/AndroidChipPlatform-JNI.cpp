@@ -139,6 +139,16 @@ JNI_METHOD(void, onNfcTagResponse)(JNIEnv * env, jobject self, jbyteArray jbArra
 #endif // CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
 }
 
+JNI_METHOD(void, onNfcTagError)(JNIEnv * env, jobject self)
+{
+    ChipLogProgress(DeviceLayer, "(Android JNI) onNfcTagError()");
+
+#if CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+    chip::DeviceLayer::StackLock lock;
+    chip::DeviceLayer::Internal::NFCMgrImpl().OnNfcTagError();
+#endif // CHIP_DEVICE_CONFIG_ENABLE_CHIPONFC
+}
+
 // for BLEManager
 JNI_METHOD(void, nativeSetBLEManager)(JNIEnv *, jobject, jobject manager)
 {

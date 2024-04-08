@@ -607,6 +607,11 @@ CHIP_ERROR SessionManager::InjectCaseSessionWithTestKey(SessionHolder & sessionH
     return CHIP_NO_ERROR;
 }
 
+void SessionManager::OnMessageError(const PeerAddress & peerAddress)
+{
+    ChipLogProgress(ExchangeManager, "SessionManager::OnMessageError");
+}
+
 void SessionManager::OnMessageReceived(const PeerAddress & peerAddress, System::PacketBufferHandle && msg,
                                        Transport::MessageTransportContext * ctxt)
 {

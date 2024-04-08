@@ -78,6 +78,13 @@ public:
         mCallback     = callback;
         mCallbackData = callback_data;
     }
+
+
+    void OnMessageError(const Transport::PeerAddress & source) override
+    {
+
+    }
+
     void OnMessageReceived(const Transport::PeerAddress & source, System::PacketBufferHandle && msgBuf,
                            Transport::MessageTransportContext * transCtxt = nullptr) override
     {

@@ -75,6 +75,7 @@ public:
     CHIP_ERROR SendMessage(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf) override;
 
     void OnNfcTagResponse(System::PacketBufferHandle && buffer);
+    void OnNfcTagError();
 
     bool CanSendToPeer(const Transport::PeerAddress & address) override
     {

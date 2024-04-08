@@ -154,4 +154,16 @@ void TransportMgrBase::HandleConnectionClosed(Transport::ActiveTCPConnectionStat
 }
 #endif // INET_CONFIG_ENABLE_TCP_ENDPOINT
 
+void TransportMgrBase::HandleMessageError(const Transport::PeerAddress & peerAddress) {
+    ChipLogProgress(Inet, "TransportMgrBase::HandleMessageError");
+
+    assertChipStackLockedByCurrentThread();
+
+    if (mSessionManager != nullptr)
+    {
+        mSessionManager->OnMessageError(peerAddress);
+    }
+
+}
+
 } // namespace chip

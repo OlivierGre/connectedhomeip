@@ -82,6 +82,7 @@ public class AndroidNfcManager implements NfcManager {
             }
           } catch (Exception e) {
               e.printStackTrace();
+              mPlatform.onNfcTagError();
           }
         }
     }.start();
@@ -110,6 +111,7 @@ public class AndroidNfcManager implements NfcManager {
             selectMatterApplication();
           } catch (IOException e) {
               e.printStackTrace();
+              mPlatform.onNfcTagError();
           }
         }
     }.start();

@@ -541,6 +541,7 @@ public:
 private:
     void OnMessageReceived(const Transport::PeerAddress & source, System::PacketBufferHandle && msgBuf,
                            Transport::MessageTransportContext * ctxt = nullptr) override;
+    void OnMessageError(const Transport::PeerAddress & source) override;
 
     CommissionerDeclarationHandler * mCommissionerDeclarationHandler = nullptr;
 };
@@ -653,6 +654,7 @@ private:
     void HandleNewUDC(const Transport::PeerAddress & source, IdentificationDeclaration & id);
     void HandleUDCCancel(IdentificationDeclaration & id);
     void HandleUDCCommissionerPasscodeReady(IdentificationDeclaration & id);
+    void OnMessageError(const Transport::PeerAddress & source) override;
     void OnMessageReceived(const Transport::PeerAddress & source, System::PacketBufferHandle && msgBuf,
                            Transport::MessageTransportContext * ctxt = nullptr) override;
 

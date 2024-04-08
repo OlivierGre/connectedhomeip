@@ -74,6 +74,13 @@ void NFCBase::OnNfcTagResponse(System::PacketBufferHandle && buffer)
     HandleMessageReceived(Transport::PeerAddress(Transport::Type::kNfc), std::move(buffer));
 }
 
+void NFCBase::OnNfcTagError()
+{
+    ChipLogProgress(Controller, "NFCBase::OnNfcTagError");
+
+    HandleMessageError(Transport::PeerAddress(Transport::Type::kNfc));
+}
+
 CHIP_ERROR NFCBase::SendMessage(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf)
 {
 #ifdef DUMP_BLE_MESSAGES

@@ -274,6 +274,11 @@ void UserDirectedCommissioningClient::OnMessageReceived(const Transport::PeerAdd
     }
 }
 
+void UserDirectedCommissioningClient::OnMessageError(const Transport::PeerAddress & source)
+{
+    ChipLogProgress(AppServer, "UserDirectedCommissioningClient::OnMessageError");
+}
+
 } // namespace UserDirectedCommissioning
 } // namespace Protocols
 } // namespace chip
