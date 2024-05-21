@@ -21,12 +21,18 @@ package com.google.chip.chiptool.provisioning
 import android.bluetooth.BluetoothGatt
 import android.content.Context
 import android.content.DialogInterface
+import android.graphics.Typeface
 import android.nfc.Tag
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.Animation
+import android.view.animation.LinearInterpolator
+import android.view.animation.RotateAnimation
+import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
@@ -37,6 +43,7 @@ import chip.devicecontroller.DeviceAttestationDelegate
 import chip.devicecontroller.ICDDeviceInfo
 import chip.devicecontroller.ICDRegistrationInfo
 import chip.devicecontroller.NetworkCredentials
+import chip.devicecontroller.MatterProgressCallback
 import com.google.chip.chiptool.CHIPToolActivity
 import com.google.chip.chiptool.ChipClient
 import com.google.chip.chiptool.GenericChipDeviceListener
@@ -63,6 +70,8 @@ class DeviceProvisioningFragment : Fragment() {
     get() = arguments?.getParcelable(ARG_NETWORK_CREDENTIALS)
 
   private lateinit var deviceController: ChipDeviceController
+
+  private var mImageViewInProgress: ImageView? = null
 
   private lateinit var scope: CoroutineScope
 
@@ -190,6 +199,13 @@ class DeviceProvisioningFragment : Fragment() {
 
   override fun getContext(): Context? {
     return requireActivity() as Context
+  }
+
+  inner class ChipMatterProgressCallback : MatterProgressCallback {
+    override fun progressNotification(progress: Int) {
+      Log.d("DeviceProvisioning", "Matter progress notification: " + progress)
+      displayProgress(progress)
+    }
   }
 
   private fun startConnectingToDevice() {
@@ -388,6 +404,213 @@ class DeviceProvisioningFragment : Fragment() {
         Log.d(TAG, message)
         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
       }
+    }
+  }
+
+  private val PASE = 10
+  private val CHECK_DEVICE_ATTESTATION = 20
+  private val SET_NETWORK_OPERATIONAL_CERTIFICATE = 30
+  private val SET_ACCESS_CONTROL_LIST = 40
+  private val SET_OPERATIONAL_NETWORK = 50
+  private val PLEASE_SWITCH_ON_THE_DEVICE = 60
+
+  private val LAUNCH_OF_OPERATIONAL_NETWORK = 70
+  private val SRP_CONFIGURATION = 80
+  private val CASE = 90
+  private val DEVICE_COMMISSIONED_SUCCESSFULLY = 100
+
+  private var commissioningAlertDialogView: View? = null
+
+  private var progress = 0
+
+  fun displayCommissioningProgress() {
+    progress = PASE
+    requireActivity().runOnUiThread(java.lang.Runnable {
+      val alertDialogBuilder = AlertDialog.Builder(requireActivity())
+
+      // inflate XML content
+      commissioningAlertDialogView =
+        layoutInflater.inflate(R.layout.fragment_commissioning_progress, null)
+      alertDialogBuilder
+        .setTitle(getString(R.string.matter_commissioning_in_progress))
+        .setCancelable(false)
+        .setNegativeButton(
+          "Close"
+        ) { dialog, id ->
+          commissioningAlertDialogView = null
+          dialog.cancel()
+        }
+      alertDialogBuilder.setView(commissioningAlertDialogView)
+
+      // create alert dialog
+      val alertDialog = alertDialogBuilder.create()
+      displayProgress(progress)
+
+      // show it
+      alertDialog.show()
+      alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(
+        resources.getColor(R.color.light_blue)
+      )
+    })
+  }
+
+  private fun setAnimatedImageView(imageView: ImageView?) {
+
+    // If an animation is currently running, stop it
+    if (mImageViewInProgress != null) {
+      mImageViewInProgress!!.clearAnimation()
+      mImageViewInProgress!!.setImageResource(R.drawable.ic_check_green_24dp)
+      mImageViewInProgress = null
+    }
+
+    if (imageView == null) {
+      return
+    }
+
+    imageView!!.setImageResource(R.drawable.circular_arrow_green)
+    imageView!!.visibility = View.VISIBLE
+
+    val anim = RotateAnimation(
+      0.0f,
+      360.0f,
+      Animation.RELATIVE_TO_SELF,
+      .5f,
+      Animation.RELATIVE_TO_SELF,
+      .5f
+    )
+    anim.interpolator = LinearInterpolator()
+    anim.repeatCount = Animation.INFINITE
+    anim.duration = 3000
+    imageView.animation = anim
+    imageView.startAnimation(anim)
+
+    mImageViewInProgress = imageView
+  }
+
+  private fun displayProgress(progress: Int) {
+    if (commissioningAlertDialogView != null) {
+      requireActivity().runOnUiThread(java.lang.Runnable {
+        if (commissioningAlertDialogView != null) {
+          val imageViewInProgress: ImageView? = null
+          val nfcImageView = commissioningAlertDialogView!!.findViewById<ImageView>(R.id.nfcImageView)
+          val threadImageView =
+            commissioningAlertDialogView!!.findViewById<ImageView>(R.id.threadImageView)
+          val paseImageView = commissioningAlertDialogView!!.findViewById<ImageView>(R.id.paseImageView)
+          val paseTextView = commissioningAlertDialogView!!.findViewById<TextView>(R.id.paseTextView)
+          val deviceAttestationImageView =
+            commissioningAlertDialogView!!.findViewById<ImageView>(R.id.deviceAttestationImageView)
+          val deviceAttestationTextView =
+            commissioningAlertDialogView!!.findViewById<TextView>(R.id.deviceAttestationTextView)
+          val nocImageView = commissioningAlertDialogView!!.findViewById<ImageView>(R.id.nocImageView)
+          val nocTextView = commissioningAlertDialogView!!.findViewById<TextView>(R.id.nocTextView)
+          val accessControlListImageView =
+            commissioningAlertDialogView!!.findViewById<ImageView>(R.id.accessControlListImageView)
+          val accessControlListTextView =
+            commissioningAlertDialogView!!.findViewById<TextView>(R.id.accessControlListTextView)
+          val operationalNetworkImageView =
+            commissioningAlertDialogView!!.findViewById<ImageView>(R.id.operationalNetworkImageView)
+          val operationalNetworkTextView =
+            commissioningAlertDialogView!!.findViewById<TextView>(R.id.operationalNetworkTextView)
+          val pleaseSwitchOnTheDeviceTextView =
+            commissioningAlertDialogView!!.findViewById<TextView>(R.id.pleaseSwitchOnTheDeviceTextView)
+          val launchOperationNetworkImageView =
+            commissioningAlertDialogView!!.findViewById<ImageView>(R.id.launchOperationNetworkImageView)
+          val launchOperationNetworkTextView =
+            commissioningAlertDialogView!!.findViewById<TextView>(R.id.launchOperationNetworkTextView)
+          val srpConfigurationImageView =
+            commissioningAlertDialogView!!.findViewById<ImageView>(R.id.srpConfigurationImageView)
+          val srpConfigurationTextView =
+            commissioningAlertDialogView!!.findViewById<TextView>(R.id.srpConfigurationTextView)
+          val caseImageView = commissioningAlertDialogView!!.findViewById<ImageView>(R.id.caseImageView)
+          val caseTextView = commissioningAlertDialogView!!.findViewById<TextView>(R.id.caseTextView)
+          val commissioningDoneTextView =
+            commissioningAlertDialogView!!.findViewById<TextView>(R.id.commissioningDoneTextView)
+
+          Log.d(TAG, "displayProgress $progress")
+
+          when (progress) {
+            PASE -> {
+              setAnimatedImageView(paseImageView);
+              nfcImageView.setImageResource(R.drawable.new_nfc_logo_black)
+              threadImageView.setImageResource(R.drawable.thread_logo_grey)
+              deviceAttestationImageView.visibility = View.INVISIBLE
+              nocImageView.visibility = View.INVISIBLE
+              accessControlListImageView.visibility = View.INVISIBLE
+              operationalNetworkImageView.visibility = View.INVISIBLE
+              launchOperationNetworkImageView.visibility = View.INVISIBLE
+              srpConfigurationImageView.visibility = View.INVISIBLE
+              caseImageView.visibility = View.INVISIBLE
+              paseTextView.setTextColor(resources.getColor(R.color.dark_blue))
+              deviceAttestationTextView.setTextColor(resources.getColor(R.color.light_grey))
+              nocTextView.setTextColor(resources.getColor(R.color.light_grey))
+              accessControlListTextView.setTextColor(resources.getColor(R.color.light_grey))
+              operationalNetworkTextView.setTextColor(resources.getColor(R.color.light_grey))
+              pleaseSwitchOnTheDeviceTextView.setTextColor(resources.getColor(R.color.light_grey))
+              launchOperationNetworkTextView.setTextColor(resources.getColor(R.color.light_grey))
+              srpConfigurationTextView.setTextColor(resources.getColor(R.color.light_grey))
+              caseTextView.setTextColor(resources.getColor(R.color.light_grey))
+              commissioningDoneTextView.setTextColor(resources.getColor(R.color.light_grey))
+              pleaseSwitchOnTheDeviceTextView.setTypeface(Typeface.DEFAULT)
+              commissioningDoneTextView.setTypeface(Typeface.DEFAULT)
+            }
+
+            CHECK_DEVICE_ATTESTATION -> {
+              setAnimatedImageView(deviceAttestationImageView);
+              deviceAttestationTextView.setTextColor(resources.getColor(R.color.dark_blue))
+            }
+
+            SET_NETWORK_OPERATIONAL_CERTIFICATE -> {
+              setAnimatedImageView(nocImageView);
+              nocTextView.setTextColor(resources.getColor(R.color.dark_blue))
+            }
+
+            SET_ACCESS_CONTROL_LIST -> {
+              setAnimatedImageView(accessControlListImageView);
+              accessControlListTextView.setTextColor(resources.getColor(R.color.dark_blue))
+            }
+
+            SET_OPERATIONAL_NETWORK -> {
+              setAnimatedImageView(operationalNetworkImageView);
+              operationalNetworkTextView.setTextColor(resources.getColor(R.color.dark_blue))
+            }
+
+            PLEASE_SWITCH_ON_THE_DEVICE -> {
+              setAnimatedImageView(launchOperationNetworkImageView);
+              nfcImageView.setImageResource(R.drawable.new_nfc_logo_grey)
+              pleaseSwitchOnTheDeviceTextView.setTextColor(resources.getColor(R.color.dark_blue))
+              pleaseSwitchOnTheDeviceTextView.setTypeface(Typeface.DEFAULT_BOLD)
+              threadImageView.setImageResource(R.drawable.thread_logo_black)
+              launchOperationNetworkTextView.setTextColor(resources.getColor(R.color.dark_blue))
+              srpConfigurationTextView.setTextColor(resources.getColor(R.color.dark_blue))
+            }
+
+            LAUNCH_OF_OPERATIONAL_NETWORK -> {
+              // No more used
+            }
+
+            SRP_CONFIGURATION -> {
+              // No more used
+            }
+
+            CASE -> {
+              setAnimatedImageView(caseImageView);
+              srpConfigurationImageView.visibility = View.VISIBLE
+              caseTextView.setTextColor(resources.getColor(R.color.dark_blue))
+            }
+
+            DEVICE_COMMISSIONED_SUCCESSFULLY -> {
+              setAnimatedImageView(null);
+              commissioningDoneTextView.setTextColor(resources.getColor(R.color.dark_blue))
+              commissioningDoneTextView.setTypeface(Typeface.DEFAULT_BOLD)
+            }
+
+            else -> Log.e(
+              TAG,
+              "Invalid progress: $progress"
+            )
+          }
+        }
+      })
     }
   }
 

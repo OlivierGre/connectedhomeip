@@ -294,4 +294,16 @@
     <string name="not_a_matter_uri">Not a MATTER URI!</string>
     <string name="invalid_type4_response">Invalid Type 4 response</string>
 
+    <string name="matter_commissioning_in_progress">Matter Commissioning in progress:</string>
+    <string name="pase">PASE</string>
+    <string name="check_device_attestion">Check Device Attestation</string>
+    <string name="set_network_operational_certificate">Set Network Operational Certificate</string>
+    <string name="set_access_control_list">Set Access Control List</string>
+    <string name="set_operational_network">Set Operational Network</string>
+    <string name="please_switch_on_the_device">Please switch ON the device</string>
+    <string name="launch_of_operational_network">Launch of Operational Network</string>
+    <string name="srp_configuration">SRP configuration</string>
+    <string name="case_step">CASE</string>
+    <string name="device_commissioned_successfully">Device commissioned successfully!</string>
+
 </resources>
