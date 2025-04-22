@@ -45,18 +45,18 @@ class NFCCommissioningManagerImpl final : public NFCCommissioningManager, privat
     friend NFCCommissioningManager;
 
 public:
-    CHIP_ERROR ConfigureNfc(uint32_t aNodeId, bool aIsCentral);
-
     void InitializeWithObject(jobject managerObject);
 
-    CHIP_ERROR OnNfcTagResponse(System::PacketBufferHandle && buffer);
-    CHIP_ERROR OnNfcTagError();
+    CHIP_ERROR OnNfcTagResponse(const Transport::PeerAddress & address, System::PacketBufferHandle && buffer);
+    CHIP_ERROR OnNfcTagError(const Transport::PeerAddress & address);
 
     // ===== Members that implement virtual methods on NfcApplicationDelegate.
 
     void SetNFCBase(Transport::NFCBase * nfcBase) override;
 
-    CHIP_ERROR SendToNfcTag(System::PacketBufferHandle && msgBuf) override;
+    bool CanSendToPeer(const Transport::PeerAddress & address) override;
+
+    CHIP_ERROR SendToNfcTag(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf) override;
 
 private:
     // ===== Members that implement the NFCCommissioningManager internal interface.
@@ -70,7 +70,7 @@ private:
 
     static NFCCommissioningManagerImpl sInstance;
 
-    jobject mNFCCommissioningManagerObject = nullptr;
+    chip::JniGlobalReference mNFCCommissioningManagerObject;
     jmethodID mInitMethod                  = nullptr;
     jmethodID mSendToNfcTagCallback        = nullptr;
 

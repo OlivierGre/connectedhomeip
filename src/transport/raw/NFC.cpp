@@ -63,14 +63,19 @@ CHIP_ERROR NFCBase::Init(const NfcListenParameters & params)
     return CHIP_NO_ERROR;
 }
 
-void NFCBase::OnNfcTagResponse(System::PacketBufferHandle && buffer)
+bool NFCBase::CanSendToPeer(const Transport::PeerAddress & address)
+{
+    return chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().CanSendToPeer(address);
+}
+
+void NFCBase::OnNfcTagResponse(const Transport::PeerAddress & address, System::PacketBufferHandle && buffer)
 {
     ChipLogProgress(Controller, "NFCBase::OnNfcTagResponse");
 
-    HandleMessageReceived(Transport::PeerAddress(Transport::Type::kNfc), std::move(buffer));
+    HandleMessageReceived(address, std::move(buffer));
 }
 
-void NFCBase::OnNfcTagError()
+void NFCBase::OnNfcTagError(const Transport::PeerAddress & address)
 {
     ChipLogProgress(Controller, "NFCBase::OnNfcTagError");
 }
@@ -80,7 +85,7 @@ CHIP_ERROR NFCBase::SendMessage(const Transport::PeerAddress & address, System::
     VerifyOrReturnError(address.GetTransportType() == Type::kNfc, CHIP_ERROR_INVALID_ARGUMENT);
     VerifyOrReturnError(mState != State::kNotReady, CHIP_ERROR_INCORRECT_STATE);
 
-    chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().SendToNfcTag(std::move(msgBuf));
+    chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().SendToNfcTag(address, std::move(msgBuf));
 
     return CHIP_NO_ERROR;
 }

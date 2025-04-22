@@ -38,7 +38,9 @@ class DLL_EXPORT NfcApplicationDelegate
 public:
     virtual ~NfcApplicationDelegate() {}
 
-    virtual CHIP_ERROR SendToNfcTag(System::PacketBufferHandle && msgBuf) = 0;
+    virtual bool CanSendToPeer(const Transport::PeerAddress & address) = 0;
+
+    virtual CHIP_ERROR SendToNfcTag(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf) = 0;
 
     virtual void SetNFCBase(Transport::NFCBase * nfcBase) = 0;
 };

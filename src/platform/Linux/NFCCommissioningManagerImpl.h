@@ -27,11 +27,15 @@
 
 #include <platform/internal/NFCCommissioningManager.h>
 
+#include <winscard.h>
+
 #if CHIP_DEVICE_CONFIG_ENABLE_NFC_BASED_COMMISSIONING
 
 namespace chip {
 namespace DeviceLayer {
 namespace Internal {
+
+class TagInstance;
 
 /**
  * Concrete implementation of the NFCCommissioningManagerImpl singleton object for the Linux platforms.
@@ -43,19 +47,13 @@ class NFCCommissioningManagerImpl final : public NFCCommissioningManager, privat
     friend NFCCommissioningManager;
 
 public:
-    CHIP_ERROR ConfigureNfc(uint32_t aNodeId, bool aIsCentral);
-
-    CHIP_ERROR OnNfcTagResponse(System::PacketBufferHandle && buffer);
-    CHIP_ERROR OnNfcTagError();
-
     // ===== Members that implement virtual methods on NfcApplicationDelegate.
 
     void SetNFCBase(Transport::NFCBase * nfcBase) override;
 
-    CHIP_ERROR SelectMatterApplet(void);
-    CHIP_ERROR SendToNfcTag(System::PacketBufferHandle && msgBuf) override;
+    bool CanSendToPeer(const Transport::PeerAddress & address) override;
 
-    void SendChainedAPDUs(void);
+    CHIP_ERROR SendToNfcTag(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf) override;
 
 private:
     // ===== Members that implement the NFCCommissioningManager internal interface.
@@ -68,38 +66,20 @@ private:
     friend NFCCommissioningManagerImpl & NFCCommissioningMgrImpl();
 
     static NFCCommissioningManagerImpl sInstance;
-    static void SendChainedAPDUs(intptr_t arg);
 
-    CHIP_ERROR ConnectToCard(void);
-    CHIP_ERROR SendTransportAPDU(uint8_t * dataToSend, uint32_t dataToSendLength, bool isLastBlock, uint32_t totalLength,
-                                 uint8_t * pRcvBuffer, uint32_t * pRcvLength);
-    CHIP_ERROR GetResponse(uint8_t length, uint8_t * pRcvBuffer, uint32_t * pRcvLength);
-    void ProcessAPDUResponse(void);
-    CHIP_ERROR Transceive(const char * commandName, uint8_t * pSendBuffer, uint32_t sendBufferLength, uint8_t * pRcvBuffer,
-                          uint32_t * pRcvLength);
+    // Static function called by ScheduleWork()
+    static void SendToNfcTag(intptr_t arg);
 
-    void PrintSw1Sw2(uint8_t sw1, uint8_t sw2);
-    void ProcessError(const char * msg);
-    void NotifyResponse(uint8_t * response, uint32_t responseLen);
+    void SendChainedAPDUs(intptr_t arg);
 
-    void ResetChainedResponseBuffer(void);
-    CHIP_ERROR AddDataToChainedResponseBuffer(uint8_t * data, int dataLen);
+    void DeleteAllTagInstancesUsingReaderName(const char* readerName);
+    TagInstance* SearchTagInstanceFromReaderNameAndCardHandle(const char* readerName, SCARDHANDLE cardHandle) ;
+    TagInstance* SearchTagInstanceFromDiscriminator(uint16_t discriminator);
+
+    CHIP_ERROR ScanAllReaders(uint16_t nfcShortId);
+    CHIP_ERROR ScanReader(uint16_t nfcShortId, char *readerName);
 
     Transport::NFCBase * mNFCBase = nullptr;
-
-    // Buffer containing the message to send to the tag
-    uint8_t mDataToSend[1280];
-    uint32_t mDataToSendLength;
-
-    // Buffer containing a single APDU command sent to the tag
-    uint8_t mAPDUTxBuffer[256];
-    // Buffer used to receive the response to an APDU command
-    uint8_t mAPDURxBuffer[256];
-    uint32_t mAPDUResponseLength;
-
-    // Buffer storing the chained APDU messages received from the tag
-    uint8_t mChainedResponseBuffer[1280];
-    uint32_t mChainedResponseLength;
 };
 
 /**

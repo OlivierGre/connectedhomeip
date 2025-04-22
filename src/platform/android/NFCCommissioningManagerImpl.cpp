@@ -49,9 +49,9 @@ void NFCCommissioningManagerImpl::InitializeWithObject(jobject manager)
     JNIEnv * env = JniReferences::GetInstance().GetEnvForCurrentThread();
     VerifyOrReturn(env != nullptr, ChipLogError(DeviceLayer, "Failed to GetEnvForCurrentThread for NFCCommissioningManager"));
 
-    mNFCCommissioningManagerObject = env->NewGlobalRef(manager);
-    VerifyOrReturn(mNFCCommissioningManagerObject != nullptr,
-                   ChipLogError(DeviceLayer, "Failed to NewGlobalRef NFCCommissioningManager"));
+   // Initialize the JniGlobalReference with the manager object
+    VerifyOrReturn(mNFCCommissioningManagerObject.Init(manager) == CHIP_NO_ERROR,
+                   ChipLogError(DeviceLayer, "Failed to init mNFCCommissioningManagerObject"));
 
     jclass NFCCommissioningManagerClass = env->GetObjectClass(manager);
     VerifyOrReturn(NFCCommissioningManagerClass != nullptr,
@@ -89,22 +89,55 @@ void NFCCommissioningManagerImpl::SetNFCBase(Transport::NFCBase * nfcBase)
     mNFCBase = nfcBase;
 }
 
-CHIP_ERROR NFCCommissioningManagerImpl::SendToNfcTag(System::PacketBufferHandle && msgBuf)
+bool NFCCommissioningManagerImpl::CanSendToPeer(const Transport::PeerAddress & address)
+{
+    // on Android platform, a single NFC Tag can be used at a time so no need to use
+    //  NFCshortId to determine to what NFC Tag the command should be sent
+    return true;
+}
+
+CHIP_ERROR NFCCommissioningManagerImpl::SendToNfcTag(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf)
 {
     ChipLogProgress(DeviceLayer, "NFCCommissioningManagerImpl::SendToNfcTag()");
 
     const uint8_t * buffer = msgBuf->Start();
-    uint32_t len           = (uint32_t) msgBuf->DataLength();
+    uint32_t len = static_cast<uint32_t>(msgBuf->DataLength());
 
-    JNIEnv * env       = JniReferences::GetInstance().GetEnvForCurrentThread();
+    JNIEnv * env = JniReferences::GetInstance().GetEnvForCurrentThread();
+    VerifyOrReturnError(env != nullptr, CHIP_ERROR_INTERNAL);
+
+    // Create a JniLocalReferenceScope to manage local references
+    chip::JniLocalReferenceScope localRefScope(env);
+
     jbyteArray jbArray = env->NewByteArray((int) len);
+    if (jbArray == nullptr)
+    {
+        ChipLogError(DeviceLayer, "Failed to create new Java byte array");
+        return CHIP_ERROR_NO_MEMORY;
+    }
+
     env->SetByteArrayRegion(jbArray, 0, (int) len, (jbyte *) buffer);
-    env->CallVoidMethod(mNFCCommissioningManagerObject, mSendToNfcTagCallback, jbArray);
+    if (env->ExceptionCheck())
+    {
+        env->ExceptionClear();
+        ChipLogError(DeviceLayer, "Failed to set byte array region");
+        return CHIP_ERROR_INTERNAL;
+    }
+
+    VerifyOrReturnError(mNFCCommissioningManagerObject.HasValidObjectRef(), CHIP_ERROR_INTERNAL);
+
+    env->CallVoidMethod(mNFCCommissioningManagerObject.ObjectRef(), mSendToNfcTagCallback, jbArray);
+    if (env->ExceptionCheck())
+    {
+        env->ExceptionClear();
+        ChipLogError(DeviceLayer, "Failed to call Java method sendToNfcTag");
+        return CHIP_ERROR_INTERNAL;
+    }
 
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagResponse(System::PacketBufferHandle && buffer)
+CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagResponse(const Transport::PeerAddress & address, System::PacketBufferHandle && buffer)
 {
     ChipLogProgress(DeviceLayer, "NFCCommissioningManagerImpl::OnNfcTagResponse()");
 
@@ -114,12 +147,12 @@ CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagResponse(System::PacketBufferHan
         return CHIP_ERROR_INCORRECT_STATE;
     }
 
-    mNFCBase->OnNfcTagResponse(std::move(buffer));
+    mNFCBase->OnNfcTagResponse(address, std::move(buffer));
 
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagError()
+CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagError(const Transport::PeerAddress & address)
 {
     ChipLogProgress(DeviceLayer, "NFCCommissioningManagerImpl::OnNfcTagError()");
 
@@ -129,7 +162,7 @@ CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagError()
         return CHIP_ERROR_INCORRECT_STATE;
     }
 
-    mNFCBase->OnNfcTagError();
+    mNFCBase->OnNfcTagError(address);
 
     return CHIP_NO_ERROR;
 }

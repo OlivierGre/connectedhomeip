@@ -131,7 +131,8 @@ JNI_METHOD(void, nativeSetNFCCommissioningManager)(JNIEnv * env, jobject, jobjec
 {
     ChipLogProgress(DeviceLayer, "(Android JNI) nativeSetNFCCommissioningManager()");
 
-    VerifyOrReturn(env != nullptr);
+    VerifyOrReturn(env != nullptr, ChipLogError(DeviceLayer, "nativeSetNFCCommissioningManager(): Invalid env"));
+
 #if CHIP_DEVICE_CONFIG_ENABLE_NFC_BASED_COMMISSIONING
     chip::DeviceLayer::StackLock lock;
     chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().InitializeWithObject(manager);
@@ -142,7 +143,8 @@ JNI_METHOD(void, onNfcTagResponse)(JNIEnv * env, jobject self, jbyteArray jbArra
 {
     ChipLogProgress(Controller, "%p (Android JNI) onNfcTagResponse()", self);
 
-    VerifyOrReturn(env != nullptr);
+    VerifyOrReturn(env != nullptr, ChipLogError(DeviceLayer, "onNfcTagResponse(): Invalid env"));
+
 #if CHIP_DEVICE_CONFIG_ENABLE_NFC_BASED_COMMISSIONING
     chip::DeviceLayer::StackLock lock;
 
@@ -151,8 +153,9 @@ JNI_METHOD(void, onNfcTagResponse)(JNIEnv * env, jobject self, jbyteArray jbArra
 
     System::PacketBufferHandle buffer =
         System::PacketBufferHandle::NewWithData(reinterpret_cast<const uint8_t *>(data), static_cast<size_t>(length));
+    VerifyOrReturn(!buffer.IsNull(), ChipLogError(DeviceLayer, "Failed to allocate packet buffer"));
 
-    chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().OnNfcTagResponse(std::move(buffer));
+    chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().OnNfcTagResponse(Transport::PeerAddress::NFC(), std::move(buffer));
 #endif // CHIP_DEVICE_CONFIG_ENABLE_NFC_BASED_COMMISSIONING
 }
 
@@ -160,9 +163,11 @@ JNI_METHOD(void, onNfcTagError)(JNIEnv * env, jobject self)
 {
     ChipLogProgress(DeviceLayer, "(Android JNI) onNfcTagError()");
 
+    VerifyOrReturn(env != nullptr, ChipLogError(DeviceLayer, "onNfcTagError(): Invalid env"));
+
 #if CHIP_DEVICE_CONFIG_ENABLE_NFC_BASED_COMMISSIONING
     chip::DeviceLayer::StackLock lock;
-    chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().OnNfcTagError();
+    chip::DeviceLayer::Internal::NFCCommissioningMgrImpl().OnNfcTagError(Transport::PeerAddress::NFC());
 #endif // CHIP_DEVICE_CONFIG_ENABLE_NFC_BASED_COMMISSIONING
 }
 

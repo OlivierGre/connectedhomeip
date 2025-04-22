@@ -72,13 +72,10 @@ public:
 
     CHIP_ERROR SendMessage(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf) override;
 
-    void OnNfcTagResponse(System::PacketBufferHandle && buffer);
-    void OnNfcTagError();
+    void OnNfcTagResponse(const Transport::PeerAddress & address, System::PacketBufferHandle && buffer);
+    void OnNfcTagError(const Transport::PeerAddress & address);
 
-    bool CanSendToPeer(const Transport::PeerAddress & address) override
-    {
-        return (mState != State::kNotReady) && (address.GetTransportType() == Type::kNfc);
-    }
+    bool CanSendToPeer(const Transport::PeerAddress & address) override;
 
 private:
     void ClearState();
