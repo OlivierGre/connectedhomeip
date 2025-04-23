@@ -72,12 +72,12 @@ private:
 
     void SendChainedAPDUs(intptr_t arg);
 
-    void DeleteAllTagInstancesUsingReaderName(const char* readerName);
-    TagInstance* SearchTagInstanceFromReaderNameAndCardHandle(const char* readerName, SCARDHANDLE cardHandle) ;
-    TagInstance* SearchTagInstanceFromDiscriminator(uint16_t discriminator);
+    void DeleteAllTagInstancesUsingReaderName(const char * readerName);
+    TagInstance * SearchTagInstanceFromReaderNameAndCardHandle(const char * readerName, SCARDHANDLE cardHandle);
+    TagInstance * SearchTagInstanceFromDiscriminator(uint16_t discriminator);
 
     CHIP_ERROR ScanAllReaders(uint16_t nfcShortId);
-    CHIP_ERROR ScanReader(uint16_t nfcShortId, char *readerName);
+    CHIP_ERROR ScanReader(uint16_t nfcShortId, char * readerName);
 
     Transport::NFCBase * mNFCBase = nullptr;
 };

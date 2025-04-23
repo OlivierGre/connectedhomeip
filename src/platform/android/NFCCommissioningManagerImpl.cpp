@@ -49,7 +49,7 @@ void NFCCommissioningManagerImpl::InitializeWithObject(jobject manager)
     JNIEnv * env = JniReferences::GetInstance().GetEnvForCurrentThread();
     VerifyOrReturn(env != nullptr, ChipLogError(DeviceLayer, "Failed to GetEnvForCurrentThread for NFCCommissioningManager"));
 
-   // Initialize the JniGlobalReference with the manager object
+    // Initialize the JniGlobalReference with the manager object
     VerifyOrReturn(mNFCCommissioningManagerObject.Init(manager) == CHIP_NO_ERROR,
                    ChipLogError(DeviceLayer, "Failed to init mNFCCommissioningManagerObject"));
 
@@ -101,7 +101,7 @@ CHIP_ERROR NFCCommissioningManagerImpl::SendToNfcTag(const Transport::PeerAddres
     ChipLogProgress(DeviceLayer, "NFCCommissioningManagerImpl::SendToNfcTag()");
 
     const uint8_t * buffer = msgBuf->Start();
-    uint32_t len = static_cast<uint32_t>(msgBuf->DataLength());
+    uint32_t len           = static_cast<uint32_t>(msgBuf->DataLength());
 
     JNIEnv * env = JniReferences::GetInstance().GetEnvForCurrentThread();
     VerifyOrReturnError(env != nullptr, CHIP_ERROR_INTERNAL);
@@ -137,7 +137,8 @@ CHIP_ERROR NFCCommissioningManagerImpl::SendToNfcTag(const Transport::PeerAddres
     return CHIP_NO_ERROR;
 }
 
-CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagResponse(const Transport::PeerAddress & address, System::PacketBufferHandle && buffer)
+CHIP_ERROR NFCCommissioningManagerImpl::OnNfcTagResponse(const Transport::PeerAddress & address,
+                                                         System::PacketBufferHandle && buffer)
 {
     ChipLogProgress(DeviceLayer, "NFCCommissioningManagerImpl::OnNfcTagResponse()");
 

@@ -84,7 +84,7 @@ public:
 
     NodeId GetRemoteId() const { return mRemoteId; }
 
-    uint16_t GetNFCShortId() const { return  mNFCShortId; }
+    uint16_t GetNFCShortId() const { return mNFCShortId; }
 
     Type GetTransportType() const { return mTransportType; }
     PeerAddress & SetTransportType(Type type)

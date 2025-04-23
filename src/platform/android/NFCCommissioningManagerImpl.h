@@ -71,8 +71,8 @@ private:
     static NFCCommissioningManagerImpl sInstance;
 
     chip::JniGlobalReference mNFCCommissioningManagerObject;
-    jmethodID mInitMethod                  = nullptr;
-    jmethodID mSendToNfcTagCallback        = nullptr;
+    jmethodID mInitMethod           = nullptr;
+    jmethodID mSendToNfcTagCallback = nullptr;
 
     Transport::NFCBase * mNFCBase = nullptr;
 };

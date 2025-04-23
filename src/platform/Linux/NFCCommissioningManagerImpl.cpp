@@ -42,8 +42,8 @@ namespace Internal {
 
 namespace {} // namespace
 
-#define MAX_APDU_SIZE       256
-#define MAX_MESSAGE_SIZE    1280
+#define MAX_APDU_SIZE 256
+#define MAX_MESSAGE_SIZE 1280
 
 #define APDU_HEADER_SIZE_IN_BYTES 7
 #define APDU_LE_SIZE_IN_BYTES 3
@@ -59,56 +59,49 @@ namespace {} // namespace
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 #endif
 
-#define CHECK(f, rv)                                                                                      \
-    if (SCARD_S_SUCCESS != rv)                                                                            \
-    {                                                                                                     \
-        ChipLogError(DeviceLayer, "%s : %s", f, pcsc_stringify_error(rv));                                \
-        return CHIP_ERROR_INTERNAL;                                                                       \
+#define CHECK(f, rv)                                                                                                               \
+    if (SCARD_S_SUCCESS != rv)                                                                                                     \
+    {                                                                                                                              \
+        ChipLogError(DeviceLayer, "%s : %s", f, pcsc_stringify_error(rv));                                                         \
+        return CHIP_ERROR_INTERNAL;                                                                                                \
     }
 
 static SCARD_IO_REQUEST pioSendPci;
 
-
 // Message to send to an NFC Tag.
-class NFCMessage {
+class NFCMessage
+{
 private:
     // Pointer to the NFC Tag instance to communicate with
     TagInstance * pTagInstance;
 
-    uint8_t* pMessage;
+    uint8_t * pMessage;
     size_t messageSize = 0;
 
 public:
-    NFCMessage(TagInstance * instance, System::PacketBufferHandle && msgBuf)
-        : pTagInstance(instance) {
+    NFCMessage(TagInstance * instance, System::PacketBufferHandle && msgBuf) : pTagInstance(instance)
+    {
         messageSize = msgBuf->DataLength();
-        pMessage = new uint8_t[messageSize];
+        pMessage    = new uint8_t[messageSize];
         std::memcpy(pMessage, msgBuf->Start(), messageSize);
     }
 
-    ~NFCMessage() {
-        delete[] pMessage;
-    }
+    ~NFCMessage() { delete[] pMessage; }
 
-    TagInstance* GetTagInstance() {
-        return pTagInstance;
-    }
+    TagInstance * GetTagInstance() { return pTagInstance; }
 
-    uint8_t* GetMessage() {
-        return pMessage;
-    }
+    uint8_t * GetMessage() { return pMessage; }
 
-    size_t GetMessageSize() {
-        return messageSize;
-    }
+    size_t GetMessageSize() { return messageSize; }
 };
 
 // This NFC Tag contains all the variables, handles and buffers related to one NFC tag instance
-class TagInstance {
+class TagInstance
+{
 private:
     Transport::NFCBase * nfcBase;
     const Transport::PeerAddress peerAddress;
-    char* readerName;
+    char * readerName;
     SCARDHANDLE cardHandle;
     uint16_t discriminator;
 
@@ -124,40 +117,34 @@ private:
     uint32_t mChainedResponseLength = 0;
 
 public:
-    TagInstance(Transport::NFCBase * base, const Transport::PeerAddress address, const char* name, SCARDHANDLE handle)
-        : nfcBase(base), peerAddress(address), cardHandle(handle) {
+    TagInstance(Transport::NFCBase * base, const Transport::PeerAddress address, const char * name, SCARDHANDLE handle) :
+        nfcBase(base), peerAddress(address), cardHandle(handle)
+    {
 
-
-        readerName = strdup(name);      // Allocate memory and copy the string
-        discriminator = 0;              // Will be retrieved when RetrieveDiscriminator() is called
+        readerName    = strdup(name); // Allocate memory and copy the string
+        discriminator = 0;            // Will be retrieved when RetrieveDiscriminator() is called
 
         memset(mAPDUTxBuffer, 0, sizeof(mAPDUTxBuffer));
         memset(mAPDURxBuffer, 0, sizeof(mAPDURxBuffer));
         memset(mChainedResponseBuffer, 0, sizeof(mChainedResponseBuffer));
     }
 
-    ~TagInstance() {
-        free(readerName);
-    }
+    ~TagInstance() { free(readerName); }
 
-    void Print() {
+    void Print()
+    {
         ChipLogProgress(DeviceLayer, "TagInstance %p", this);
         ChipLogProgress(DeviceLayer, "cardHandle 0x" ChipLogFormatX64, ChipLogValueX64(cardHandle));
     }
 
-    const char* GetReaderName() const {
-        return readerName;
-    }
+    const char * GetReaderName() const { return readerName; }
 
-    SCARDHANDLE GetCardHandle() const {
-        return cardHandle;
-    }
+    SCARDHANDLE GetCardHandle() const { return cardHandle; }
 
-    uint16_t GetDiscriminator() const {
-        return discriminator;
-    }
+    uint16_t GetDiscriminator() const { return discriminator; }
 
-    CHIP_ERROR RetrieveDiscriminator() {
+    CHIP_ERROR RetrieveDiscriminator()
+    {
         // Discriminator can be found in the response to select application
         CHIP_ERROR res = SelectMatterApplet();
         return res;
@@ -172,10 +159,9 @@ public:
     //
     // When the tag's response is fully received, OnNfcTagResponse() notification
     // will be called.
-    void SendChainedAPDUs(uint8_t* pMessage, size_t messageSize)
+    void SendChainedAPDUs(uint8_t * pMessage, size_t messageSize)
     {
         CHIP_ERROR res;
-
 
         uint32_t totalLength         = (uint32_t) messageSize;
         uint32_t nbrOfBytesRemaining = (uint32_t) messageSize;
@@ -189,9 +175,10 @@ public:
 
             bool isLastBlock = (nbrOfBytesToSend == nbrOfBytesRemaining);
 
-            mAPDUResponseLength = sizeof(mAPDURxBuffer); // Initialized with with mAPDURxBuffer size to indicate to the low level driver
-                                                         // the capacity of the RX buffer
-            res = SendTransportAPDU(pNextDataToSend, nbrOfBytesToSend, isLastBlock, totalLength, mAPDURxBuffer, &mAPDUResponseLength);
+            mAPDUResponseLength = sizeof(mAPDURxBuffer); // Initialized with with mAPDURxBuffer size to indicate to the low level
+                                                         // driver the capacity of the RX buffer
+            res =
+                SendTransportAPDU(pNextDataToSend, nbrOfBytesToSend, isLastBlock, totalLength, mAPDURxBuffer, &mAPDUResponseLength);
             if ((res != CHIP_NO_ERROR) || (mAPDUResponseLength < 2))
             {
                 ProcessError("Invalid NFC Type4 response");
@@ -294,12 +281,13 @@ public:
             // The next response packet can be read thanks to a call to getResponse() command.
             while (sw1 == 0x61)
             {
-                // If SW2 is 0x00 or if it is higher than TYPE4_SIMPLE_APDU_MAX_RX_SIZE, we clamp it to TYPE4_SIMPLE_APDU_MAX_RX_SIZE.
+                // If SW2 is 0x00 or if it is higher than TYPE4_SIMPLE_APDU_MAX_RX_SIZE, we clamp it to
+                // TYPE4_SIMPLE_APDU_MAX_RX_SIZE.
                 uint8_t nextBlockLength =
                     ((sw2 == 0x00) || ((int) sw2 > TYPE4_SIMPLE_APDU_MAX_RX_SIZE)) ? (uint8_t) TYPE4_SIMPLE_APDU_MAX_RX_SIZE : sw2;
 
-                mAPDUResponseLength = sizeof(mAPDURxBuffer); // Initialized with with mAPDURxBuffer size to indicate to the low level
-                                                             // driver the capacity of the RX buffer
+                mAPDUResponseLength = sizeof(mAPDURxBuffer); // Initialized with with mAPDURxBuffer size to indicate to the low
+                                                             // level driver the capacity of the RX buffer
                 // Response will be written into mAPDURxBuffer
                 res = GetResponse(nextBlockLength, mAPDURxBuffer, &mAPDUResponseLength);
                 if ((res != CHIP_NO_ERROR) || (mAPDUResponseLength < 2))
@@ -363,32 +351,37 @@ public:
 
         BYTE dataReceived[10];
         DWORD receivedLength        = sizeof(dataReceived);
-        BYTE select_matter_applet[] = { 0x00, 0xA4, 0x04, 0x0C, 0x09,                           // CLA INS P1 P2 Lc
-                                        0xA0, 0x00, 0x00, 0x09, 0x09, 0x8A, 0x77, 0xE4, 0x01,   // Matter AID
-                                        0x00                                                    // Le
-                                      };
+        BYTE select_matter_applet[] = {
+            0x00, 0xA4, 0x04, 0x0C, 0x09,                         // CLA INS P1 P2 Lc
+            0xA0, 0x00, 0x00, 0x09, 0x09, 0x8A, 0x77, 0xE4, 0x01, // Matter AID
+            0x00                                                  // Le
+        };
 
-        LONG result = SCardTransmit(cardHandle, &pioSendPci, select_matter_applet, sizeof(select_matter_applet),
-                                    NULL, dataReceived, &receivedLength);
-        if (result == SCARD_S_SUCCESS) {
-            if (receivedLength >= 10) {
+        LONG result = SCardTransmit(cardHandle, &pioSendPci, select_matter_applet, sizeof(select_matter_applet), NULL, dataReceived,
+                                    &receivedLength);
+        if (result == SCARD_S_SUCCESS)
+        {
+            if (receivedLength >= 10)
+            {
                 discriminator = dataReceived[2] * 256 + dataReceived[3];
-                res = CHIP_NO_ERROR;
-            } else {
-                ChipLogError(DeviceLayer, "Response to Select Matter AID cmd is too small (%d bytes)", (unsigned int) receivedLength);
+                res           = CHIP_NO_ERROR;
+            }
+            else
+            {
+                ChipLogError(DeviceLayer, "Response to Select Matter AID cmd is too small (%d bytes)",
+                             (unsigned int) receivedLength);
                 res = CHIP_ERROR_INTERNAL;
             }
-        } else {
+        }
+        else
+        {
             res = CHIP_ERROR_INTERNAL;
         }
 
         return res;
     }
 
-    void PrintSw1Sw2(uint8_t sw1, uint8_t sw2)
-    {
-        ChipLogProgress(DeviceLayer, "SW1=0x%x SW2=0x%x", sw1, sw2);
-    }
+    void PrintSw1Sw2(uint8_t sw1, uint8_t sw2) { ChipLogProgress(DeviceLayer, "SW1=0x%x SW2=0x%x", sw1, sw2); }
 
     void ProcessError(const char * msg)
     {
@@ -404,10 +397,7 @@ public:
         SendOnNfcTagResponse(std::move(buffer));
     }
 
-    void ResetChainedResponseBuffer(void)
-    {
-        mChainedResponseLength = 0;
-    }
+    void ResetChainedResponseBuffer(void) { mChainedResponseLength = 0; }
 
     CHIP_ERROR AddDataToChainedResponseBuffer(uint8_t * data, int dataLen)
     {
@@ -424,8 +414,8 @@ public:
 
     /////////////////////////////////////////////////////////////////
 
-    CHIP_ERROR SendTransportAPDU(uint8_t * dataToSend, uint32_t dataToSendLength, bool isLastBlock,
-                                                              uint32_t totalLength, uint8_t * pRcvBuffer, uint32_t * pRcvLength)
+    CHIP_ERROR SendTransportAPDU(uint8_t * dataToSend, uint32_t dataToSendLength, bool isLastBlock, uint32_t totalLength,
+                                 uint8_t * pRcvBuffer, uint32_t * pRcvLength)
     {
 
         VerifyOrReturnLogError(dataToSendLength <= sizeof(mAPDUTxBuffer), CHIP_ERROR_INTERNAL);
@@ -460,8 +450,8 @@ public:
         return result;
     }
 
-    CHIP_ERROR Transceive(const char * commandName, uint8_t * pSendBuffer, uint32_t sendBufferLength,
-                                                       uint8_t * pRcvBuffer, uint32_t * pRcvLength)
+    CHIP_ERROR Transceive(const char * commandName, uint8_t * pSendBuffer, uint32_t sendBufferLength, uint8_t * pRcvBuffer,
+                          uint32_t * pRcvLength)
     {
         CHIP_ERROR ret;
 
@@ -501,19 +491,17 @@ public:
         nfcBase->OnNfcTagError(peerAddress);
         return CHIP_NO_ERROR;
     }
-
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
 
 SCARDCONTEXT hPcscContext;
-TagInstance* pLastTagInstanceUsed;
+TagInstance * pLastTagInstanceUsed;
 
 // Empty vector of TagInstance pointers
 std::vector<TagInstance *> tagInstances;
 
 NFCCommissioningManagerImpl NFCCommissioningManagerImpl::sInstance;
-
 
 // ===== start impl of NFCCommissioningManager internal interface, ref NFCCommissioningManager.h
 
@@ -544,17 +532,20 @@ bool NFCCommissioningManagerImpl::CanSendToPeer(const Transport::PeerAddress & a
     uint16_t nfcShortId = address.GetNFCShortId();
 
     // Check if pLastTagInstanceUsed corresponds to the same nfcShortId
-    if ( (pLastTagInstanceUsed != nullptr) && (pLastTagInstanceUsed->GetDiscriminator() == nfcShortId)) {
+    if ((pLastTagInstanceUsed != nullptr) && (pLastTagInstanceUsed->GetDiscriminator() == nfcShortId))
+    {
         return true;
     }
 
     // Check if we already have a TagInstance corresponding to this nfcShortId
-    TagInstance* pTagInstance = SearchTagInstanceFromDiscriminator(nfcShortId);
+    TagInstance * pTagInstance = SearchTagInstanceFromDiscriminator(nfcShortId);
 
-    if (pTagInstance != nullptr) {
+    if (pTagInstance != nullptr)
+    {
         canSendToPeer = true;
-
-    } else {
+    }
+    else
+    {
         // We don't have yet a cardHandle for this nfcShortId
 
         // Scan all the readers and tags
@@ -574,26 +565,29 @@ bool NFCCommissioningManagerImpl::CanSendToPeer(const Transport::PeerAddress & a
 
 CHIP_ERROR NFCCommissioningManagerImpl::SendToNfcTag(const Transport::PeerAddress & address, System::PacketBufferHandle && msgBuf)
 {
-    TagInstance* pTargetedTagInstance = nullptr;
+    TagInstance * pTargetedTagInstance = nullptr;
 
     // nfcShortId is used to find the peer device
     uint16_t nfcShortId = address.GetNFCShortId();
 
     // Check if pLastTagInstanceUsed corresponds to the same nfcShortId
-    if ( (pLastTagInstanceUsed != nullptr) && (pLastTagInstanceUsed->GetDiscriminator() == nfcShortId)) {
+    if ((pLastTagInstanceUsed != nullptr) && (pLastTagInstanceUsed->GetDiscriminator() == nfcShortId))
+    {
         pTargetedTagInstance = pLastTagInstanceUsed;
-
-    } else {
+    }
+    else
+    {
         // Search in all the TagInstance if there is one with this Discriminator
-        TagInstance* pTagInstance = SearchTagInstanceFromDiscriminator(nfcShortId);
-        if (pTagInstance != nullptr) {
+        TagInstance * pTagInstance = SearchTagInstanceFromDiscriminator(nfcShortId);
+        if (pTagInstance != nullptr)
+        {
             pTargetedTagInstance = pTagInstance;
         }
     }
 
     VerifyOrReturnLogError(pTargetedTagInstance != nullptr, CHIP_ERROR_PEER_NODE_NOT_FOUND);
 
-    NFCMessage* nfcMessage = new (std::nothrow) NFCMessage(pTargetedTagInstance, std::move(msgBuf));
+    NFCMessage * nfcMessage = new (std::nothrow) NFCMessage(pTargetedTagInstance, std::move(msgBuf));
     VerifyOrReturnLogError(((nfcMessage != nullptr) && (nfcMessage->GetMessage() != nullptr)), CHIP_ERROR_NO_MEMORY);
 
     // SendChainedAPDUs(pTagInstance) will be executed asynchronously
@@ -610,13 +604,14 @@ void NFCCommissioningManagerImpl::SendToNfcTag(intptr_t arg)
 
 void NFCCommissioningManagerImpl::SendChainedAPDUs(intptr_t arg)
 {
-    NFCMessage* nfcMessage = reinterpret_cast<NFCMessage*>(arg);
-    if(nfcMessage == nullptr) {
+    NFCMessage * nfcMessage = reinterpret_cast<NFCMessage *>(arg);
+    if (nfcMessage == nullptr)
+    {
         ChipLogError(DeviceLayer, "Invalid nfcMessage!");
         return;
     }
 
-    uint8_t* pMessage = nfcMessage->GetMessage();
+    uint8_t * pMessage = nfcMessage->GetMessage();
     size_t messageSize = nfcMessage->GetMessageSize();
     nfcMessage->GetTagInstance()->SendChainedAPDUs(pMessage, messageSize);
 
@@ -629,7 +624,7 @@ void NFCCommissioningManagerImpl::SendChainedAPDUs(intptr_t arg)
 CHIP_ERROR NFCCommissioningManagerImpl::ScanAllReaders(uint16_t nfcShortId)
 {
     long result;
-    LPTSTR mszReaders;      // LPTSTR is a "typedef char *"
+    LPTSTR mszReaders; // LPTSTR is a "typedef char *"
     DWORD dwReaders;
 
     result = SCardListReaders(hPcscContext, NULL, NULL, &dwReaders);
@@ -638,7 +633,8 @@ CHIP_ERROR NFCCommissioningManagerImpl::ScanAllReaders(uint16_t nfcShortId)
     // dwReaders now contains "mszReaders" data size
     // Allocate a buffer where we will store "mszReaders" multi-string.
     mszReaders = (LPTSTR) calloc(dwReaders, sizeof(char));
-    if (mszReaders == nullptr) {
+    if (mszReaders == nullptr)
+    {
         ChipLogError(DeviceLayer, "Memory allocation failed");
         return CHIP_ERROR_NO_MEMORY;
     }
@@ -651,16 +647,20 @@ CHIP_ERROR NFCCommissioningManagerImpl::ScanAllReaders(uint16_t nfcShortId)
     // Example : "Reader1\0Reader2\0\0"
 
     // Pointer to traverse the string
-    char *reader = mszReaders;
+    char * reader = mszReaders;
 
     // Loop through the string
-    while (*reader != '\0' || *(reader + 1) != '\0') {
-        if (*reader != '\0') {
+    while (*reader != '\0' || *(reader + 1) != '\0')
+    {
+        if (*reader != '\0')
+        {
             ScanReader(nfcShortId, reader);
 
             // Move the pointer to the next substring
             reader += strlen(reader) + 1;
-        } else {
+        }
+        else
+        {
             // Move the pointer to the next character
             reader++;
         }
@@ -672,16 +672,17 @@ CHIP_ERROR NFCCommissioningManagerImpl::ScanAllReaders(uint16_t nfcShortId)
 }
 
 // Start scan on a given reader
-CHIP_ERROR NFCCommissioningManagerImpl::ScanReader(uint16_t nfcShortId, char *readerName)
+CHIP_ERROR NFCCommissioningManagerImpl::ScanReader(uint16_t nfcShortId, char * readerName)
 {
     SCARDHANDLE cardHandle;
     DWORD dwActiveProtocol;
-    TagInstance* pTagInstance = nullptr;
+    TagInstance * pTagInstance = nullptr;
 
     // Before launching a new scan of a reader, we should discard all the saved instances using this readerName
     DeleteAllTagInstancesUsingReaderName(readerName);
 
-    long result = SCardConnect(hPcscContext, readerName, SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &cardHandle, &dwActiveProtocol);
+    long result = SCardConnect(hPcscContext, readerName, SCARD_SHARE_SHARED, SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1, &cardHandle,
+                               &dwActiveProtocol);
     switch (result)
     {
     case SCARD_S_SUCCESS:
@@ -698,11 +699,15 @@ CHIP_ERROR NFCCommissioningManagerImpl::ScanReader(uint16_t nfcShortId, char *re
 
         // Check if we already have this couple (readerName, cardHandle)
         pTagInstance = SearchTagInstanceFromReaderNameAndCardHandle(readerName, cardHandle);
-        if (pTagInstance != nullptr) {
+        if (pTagInstance != nullptr)
+        {
             // This couple (readerName, cardHandle) is already known: Nothing else to do
-        } else {
+        }
+        else
+        {
             // This couple (readerName, cardHandle) is not known yet: Create a new TagInstance
-            TagInstance* newTagInstance = new TagInstance(mNFCBase, Transport::PeerAddress::NFC(nfcShortId), readerName, cardHandle);
+            TagInstance * newTagInstance =
+                new TagInstance(mNFCBase, Transport::PeerAddress::NFC(nfcShortId), readerName, cardHandle);
 
             ReturnErrorOnFailure(newTagInstance->RetrieveDiscriminator());
 
@@ -724,10 +729,13 @@ CHIP_ERROR NFCCommissioningManagerImpl::ScanReader(uint16_t nfcShortId, char *re
 }
 
 // Function to search for a TagInstance based on readerName and cardHandle
-TagInstance* NFCCommissioningManagerImpl::SearchTagInstanceFromReaderNameAndCardHandle(const char* readerName, SCARDHANDLE cardHandle)
+TagInstance * NFCCommissioningManagerImpl::SearchTagInstanceFromReaderNameAndCardHandle(const char * readerName,
+                                                                                        SCARDHANDLE cardHandle)
 {
-    for (auto& instance : tagInstances) {
-        if (strcmp(instance->GetReaderName(), readerName) == 0 && instance->GetCardHandle() == cardHandle) {
+    for (auto & instance : tagInstances)
+    {
+        if (strcmp(instance->GetReaderName(), readerName) == 0 && instance->GetCardHandle() == cardHandle)
+        {
             return instance;
         }
     }
@@ -735,9 +743,12 @@ TagInstance* NFCCommissioningManagerImpl::SearchTagInstanceFromReaderNameAndCard
 }
 
 // Function to search for a TagInstance based on discriminator
-TagInstance* NFCCommissioningManagerImpl::SearchTagInstanceFromDiscriminator(uint16_t discriminator) {
-    for (auto& instance : tagInstances) {
-        if (instance->GetDiscriminator() == discriminator) {
+TagInstance * NFCCommissioningManagerImpl::SearchTagInstanceFromDiscriminator(uint16_t discriminator)
+{
+    for (auto & instance : tagInstances)
+    {
+        if (instance->GetDiscriminator() == discriminator)
+        {
             return instance;
         }
     }
@@ -745,18 +756,22 @@ TagInstance* NFCCommissioningManagerImpl::SearchTagInstanceFromDiscriminator(uin
 }
 
 // Delete all the TagInstance(s) using the given readerName
-void NFCCommissioningManagerImpl::DeleteAllTagInstancesUsingReaderName(const char* readerName)
+void NFCCommissioningManagerImpl::DeleteAllTagInstancesUsingReaderName(const char * readerName)
 {
     if ((pLastTagInstanceUsed != nullptr) && (strcmp(pLastTagInstanceUsed->GetReaderName(), readerName) == 0))
     {
         pLastTagInstanceUsed = nullptr;
     }
 
-    for (auto it = tagInstances.begin(); it != tagInstances.end(); ) {
-        if (strcmp((*it)->GetReaderName(), readerName) == 0) {
-            delete *it;                     // Free the memory allocated for the TagInstance
-            it = tagInstances.erase(it);    // Erase the item from the vector and get the next iterator
-        } else {
+    for (auto it = tagInstances.begin(); it != tagInstances.end();)
+    {
+        if (strcmp((*it)->GetReaderName(), readerName) == 0)
+        {
+            delete *it;                  // Free the memory allocated for the TagInstance
+            it = tagInstances.erase(it); // Erase the item from the vector and get the next iterator
+        }
+        else
+        {
             ++it;
         }
     }
