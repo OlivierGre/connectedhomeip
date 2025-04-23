@@ -144,11 +144,11 @@ public class AndroidNfcCommissioningManager implements NfcCommissioningManager {
     byte[] response;
     byte[] frame = new byte[TYPE4_HEADER_SIZE + 11];
 
-    frame[0] = 0x00;                        // CLA
-    frame[1] = TYPE4_CMD_SELECT;            // INS
-    frame[2] = TYPE4_CMD_SELECT_BY_NAME;    // P1
-    frame[3] = 0x0C;                        // P2
-    frame[4] = (byte) 0x09;                 // Lc
+    frame[0] = 0x00; // CLA
+    frame[1] = TYPE4_CMD_SELECT; // INS
+    frame[2] = TYPE4_CMD_SELECT_BY_NAME; // P1
+    frame[3] = 0x0C; // P2
+    frame[4] = (byte) 0x09; // Lc
 
     // AID for Matter: A0 00 00 09 09 8A 77 E4 01 (9 bytes)
     frame[5] = (byte) 0xA0;
@@ -161,7 +161,7 @@ public class AndroidNfcCommissioningManager implements NfcCommissioningManager {
     frame[12] = (byte) 0xE4;
     frame[13] = (byte) 0x01;
 
-    frame[14] = (byte) 0x00;                // Le
+    frame[14] = (byte) 0x00; // Le
 
     response = transceive("selectMatterApplication", frame);
 
