@@ -2376,6 +2376,10 @@ void DeviceCommissioner::ContinueReadingCommissioningInfo(const CommissioningPar
         VerifyOrReturn(builder.AddAttributePath(kRootEndpointId, Clusters::IcdManagement::Id,
                                                 Clusters::IcdManagement::Attributes::ActiveModeThreshold::Id));
 
+        // TEMP! Read the Status from PowerSource cluster.
+        VerifyOrReturn(builder.AddAttributePath(kRootEndpointId, Clusters::PowerSource::Id,
+                       Clusters::PowerSource::Attributes::Status::Id));
+
         // Extra paths requested via CommissioningParameters
         for (auto const & path : params.GetExtraReadPaths())
         {
@@ -2761,7 +2765,7 @@ CHIP_ERROR DeviceCommissioner::ParsePowerSource(ReadCommissioningInfo & info)
     }
     else
     {
-        ChipLogProgress(Controller, "Power source status not found");
+        ChipLogProgress(Controller, "PowerSourceStatus not found");
         // This key is optional so not an error
         err = CHIP_NO_ERROR;
         info.general.isCommissioningWithoutPower = false;

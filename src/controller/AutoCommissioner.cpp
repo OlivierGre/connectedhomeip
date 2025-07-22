@@ -600,6 +600,24 @@ CHIP_ERROR AutoCommissioner::StartCommissioning(DeviceCommissioner * commissione
     return CHIP_NO_ERROR;
 }
 
+CHIP_ERROR AutoCommissioner::CompleteCommissioning(DeviceCommissioner * commissioner, CommissioneeDeviceProxy * proxy)
+{
+    ChipLogProgress(Controller, "AutoCommissioner::CompleteCommissioning()");
+    if (commissioner == nullptr)
+    {
+        ChipLogError(Controller, "Invalid DeviceCommissioner");
+        return CHIP_ERROR_INVALID_ARGUMENT;
+    }
+
+    mStopCommissioning       = false;
+    mCommissioner            = commissioner;
+    mCommissioneeDeviceProxy = proxy;
+    CommissioningStage nextStage = CommissioningStage::kFindOperationalForCommissioningComplete;
+    mCommissioner->PerformCommissioningStep(mCommissioneeDeviceProxy, nextStage, mParams, this, GetEndpoint(nextStage),
+                                            GetCommandTimeout(mCommissioneeDeviceProxy, nextStage));
+    return CHIP_NO_ERROR;
+}
+
 Optional<System::Clock::Timeout> AutoCommissioner::GetCommandTimeout(DeviceProxy * device, CommissioningStage stage) const
 {
     // Network clusters can indicate the time required to connect, so if we are

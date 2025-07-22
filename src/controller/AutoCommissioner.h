@@ -50,6 +50,7 @@ public:
     void SetOperationalCredentialsDelegate(OperationalCredentialsDelegate * operationalCredentialsDelegate) override;
 
     CHIP_ERROR StartCommissioning(DeviceCommissioner * commissioner, CommissioneeDeviceProxy * proxy) override;
+    CHIP_ERROR CompleteCommissioning(DeviceCommissioner * commissioner, CommissioneeDeviceProxy * proxy) override;
     void StopCommissioning() { mStopCommissioning = true; };
 
     CHIP_ERROR CommissioningStepFinished(CHIP_ERROR err, CommissioningDelegate::CommissioningReport report) override;
