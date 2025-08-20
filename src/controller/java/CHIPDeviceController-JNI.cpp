@@ -89,6 +89,7 @@ static void * IOThreadMain(void * arg);
 static CHIP_ERROR StopIOThread();
 static CHIP_ERROR N2J_PaseVerifierParams(JNIEnv * env, jlong setupPincode, jbyteArray pakeVerifier, jobject & outParams);
 static CHIP_ERROR N2J_NetworkLocation(JNIEnv * env, jstring ipAddress, jint port, jint interfaceIndex, jobject & outLocation);
+static void onNewCommissioningStage(uint32_t stage);
 
 namespace {
 JavaVM * sJVM       = nullptr;
@@ -101,6 +102,11 @@ chip::JniGlobalReference sChipDeviceControllerExceptionCls;
 // knowing its id, because the ID can be learned on the first response that is received.
 chip::NodeId kLocalDeviceId  = chip::kTestControllerNodeId;
 chip::NodeId kRemoteDeviceId = chip::kTestDeviceNodeId;
+
+// Java object containing the commissioning progress listener to notify
+jobject mJListenerObject;
+jmethodID mMatterCommissioningProgressListener = nullptr;
+
 
 jint JNI_OnLoad(JavaVM * jvm, void * reserved)
 {
@@ -1356,6 +1362,26 @@ exit:
     }
 }
 
+JNI_METHOD(void, setMatterCommissioningProgressListener)(JNIEnv * env, jobject self, jlong handle, jobject jListenerObject)
+{
+    AndroidDeviceControllerWrapper * wrapper = AndroidDeviceControllerWrapper::FromJNIHandle(handle);
+
+    ChipLogProgress(Controller, "(JNI) setMatterCommissioningProgressListener() called with listener object");
+
+    // Save the java listener (for later use)
+    mJListenerObject = env->NewGlobalRef(jListenerObject);
+    jclass listenerClass = env->GetObjectClass(jListenerObject);
+
+    mMatterCommissioningProgressListener = env->GetMethodID(listenerClass, "onNewCommissioningStage", "(I)V");
+    if (mMatterCommissioningProgressListener == nullptr)
+    {
+        ChipLogError(Controller, "Failed to access listener 'onNewCommissioningStage' method");
+        env->ExceptionClear();
+    }
+
+    wrapper->Controller()->SetMatterCommissioningProgressListener(onNewCommissioningStage);
+}
+
 JNI_METHOD(void, stopDevicePairing)(JNIEnv * env, jobject self, jlong handle, jlong deviceId)
 {
     chip::DeviceLayer::StackLock lock;
@@ -2258,6 +2284,54 @@ JNI_METHOD(void, stopDnssd)(JNIEnv * env, jobject self, jlong handle)
     wrapper->StopDnssd();
 }
 
+JNI_METHOD(jint, getCommissioningStagekErrorValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kError;
+}
+
+JNI_METHOD(jint, getCommissioningStagekReadCommissioningInfoValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kReadCommissioningInfo;
+}
+
+JNI_METHOD(jint, getCommissioningStagekSendDACCertificateRequestValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kSendDACCertificateRequest;
+}
+
+JNI_METHOD(jint, getCommissioningStagekSendNOCValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kSendNOC;
+}
+
+JNI_METHOD(jint, getCommissioningStagekThreadNetworkSetupValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kThreadNetworkSetup;
+}
+
+JNI_METHOD(jint, getCommissioningStagekWaitForDeviceInstallationValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kWaitForDeviceInstallation;
+}
+
+JNI_METHOD(jint, getCommissioningStagekFindOperationalForStayActiveValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kFindOperationalForStayActive;
+}
+
+JNI_METHOD(jint, getCommissioningStagekSendCompleteValue)
+(JNIEnv * env, jobject self, jlong handle)
+{
+    return kSendComplete;
+}
+
 void * IOThreadMain(void * arg)
 {
     JNIEnv * env;
@@ -2299,6 +2373,19 @@ CHIP_ERROR StopIOThread()
     }
 
     return CHIP_NO_ERROR;
+}
+
+void onNewCommissioningStage(uint32_t stage)
+{
+    ChipLogProgress(Controller, "onNewCommissioningStage() stage: %d", stage);
+
+    if (mMatterCommissioningProgressListener != nullptr)
+    {
+        JNIEnv * env = JniReferences::GetInstance().GetEnvForCurrentThread();
+        jint value = (jint) stage;
+
+        env->CallVoidMethod(mJListenerObject, mMatterCommissioningProgressListener, value);
+    }
 }
 
 CHIP_ERROR N2J_PaseVerifierParams(JNIEnv * env, jlong setupPincode, jbyteArray paseVerifier, jobject & outParams)

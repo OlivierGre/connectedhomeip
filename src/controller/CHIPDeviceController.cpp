@@ -90,6 +90,8 @@ using namespace chip::Credentials;
 using namespace chip::Crypto;
 using namespace chip::Tracing;
 
+chip::Controller::DeviceController * pDeviceController;
+
 namespace chip {
 namespace Controller {
 
@@ -449,6 +451,13 @@ CHIP_ERROR DeviceController::GetPeerAddress(NodeId nodeId, Transport::PeerAddres
     ReturnErrorOnFailure(mSystemState->CASESessionMgr()->GetPeerAddress(GetPeerScopedId(nodeId), addr));
 
     return CHIP_NO_ERROR;
+}
+
+void DeviceController::SetMatterCommissioningProgressListener(OnCommissioningProgressListener listener)
+{
+    ChipLogProgress(Controller, "DeviceController::SetMatterCommissioningProgressListener");
+    mOnCommissioningProgressListener = listener;
+    pDeviceController = this;
 }
 
 CHIP_ERROR DeviceController::ComputePASEVerifier(uint32_t iterations, uint32_t setupPincode, const ByteSpan & salt,
@@ -2045,13 +2054,21 @@ void DeviceCommissioner::CleanupDoneAfterError()
     SendCommissioningCompleteCallbacks(nodeId, mCommissioningCompletionStatus);
 }
 
+void DeviceCommissioner::SetCommissioningStage(CommissioningStage stage)
+{
+    mCommissioningStage = stage;
+
+    // Notify that CommissioningStage has changed
+    SendMatterCommissioningProgress(mCommissioningStage);
+}
+
 void DeviceCommissioner::SendCommissioningCompleteCallbacks(NodeId nodeId, const CompletionStatus & completionStatus)
 {
     MATTER_LOG_METRIC_END(kMetricDeviceCommissionerCommission, completionStatus.err);
 
     ChipLogProgress(Controller, "Commissioning complete for node ID 0x" ChipLogFormatX64 ": %s", ChipLogValueX64(nodeId),
                     (completionStatus.err == CHIP_NO_ERROR ? "success" : completionStatus.err.AsString()));
-    mCommissioningStage = CommissioningStage::kSecurePairing;
+    SetCommissioningStage(CommissioningStage::kSecurePairing);
 
     if (mPairingDelegate == nullptr)
     {
@@ -2117,7 +2134,7 @@ void DeviceCommissioner::CommissioningStageComplete(CHIP_ERROR err, Commissionin
         CompletionStatus completionStatus;
         completionStatus.err         = status;
         completionStatus.failedStage = MakeOptional(report.stageCompleted);
-        mCommissioningStage          = CommissioningStage::kCleanup;
+        SetCommissioningStage(CommissioningStage::kCleanup);
         mDeviceBeingCommissioned     = proxy;
         CleanupCommissioning(proxy, nodeId, completionStatus);
     }
@@ -3045,6 +3062,16 @@ void DeviceCommissioner::SendCommissioningReadRequest(DeviceProxy * proxy, Optio
     mReadClient     = std::move(readClient);
 }
 
+// Function called to indicate the progression of Matter Commissioning
+void DeviceCommissioner::SendMatterCommissioningProgress(uint32_t stage)
+{
+    ChipLogProgress(Controller, "SendMatterCommissioningProgress %d", stage);
+
+    if ((pDeviceController != nullptr) && (pDeviceController->mOnCommissioningProgressListener != nullptr)) {
+        pDeviceController->mOnCommissioningProgressListener(stage);
+    }
+}
+
 void DeviceCommissioner::PerformCommissioningStep(DeviceProxy * proxy, CommissioningStage step, CommissioningParameters & params,
                                                   CommissioningDelegate * delegate, EndpointId endpoint,
                                                   Optional<System::Clock::Timeout> timeout)
@@ -3064,9 +3091,9 @@ void DeviceCommissioner::PerformCommissioningStep(DeviceProxy * proxy, Commissio
     }
 
     mCommissioningStepTimeout = timeout;
-    mCommissioningStage       = step;
-    mCommissioningDelegate    = delegate;
-    mDeviceBeingCommissioned  = proxy;
+    SetCommissioningStage(step);
+    mCommissioningDelegate   = delegate;
+    mDeviceBeingCommissioned = proxy;
 
     // TODO: Extend timeouts to the DAC and Opcert requests.
     // TODO(cecille): We probably want something better than this for breadcrumbs.
@@ -3769,7 +3796,7 @@ void DeviceCommissioner::PerformCommissioningStep(DeviceProxy * proxy, Commissio
         CleanupCommissioning(proxy, proxy->GetDeviceId(), params.GetCompletionStatus());
         break;
     case CommissioningStage::kError:
-        mCommissioningStage = CommissioningStage::kSecurePairing;
+        SetCommissioningStage(CommissioningStage::kSecurePairing);
         break;
     case CommissioningStage::kSecurePairing:
         break;

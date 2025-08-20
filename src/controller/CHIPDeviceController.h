@@ -239,6 +239,12 @@ public:
 
     ScopedNodeId GetPeerScopedId(NodeId nodeId) { return ScopedNodeId(nodeId, GetFabricIndex()); }
 
+    typedef void (*OnCommissioningProgressListener)(uint32_t stage);
+
+    OnCommissioningProgressListener mOnCommissioningProgressListener;
+
+    void SetMatterCommissioningProgressListener(OnCommissioningProgressListener listener);
+
     /**
      * This function finds the device corresponding to deviceId, and establishes
      * a CASE session with it.
@@ -651,6 +657,8 @@ public:
     void OnSessionEstablished(const SessionHandle & session) override;
 
     void RendezvousCleanup(CHIP_ERROR status);
+
+    void SendMatterCommissioningProgress(uint32_t stage);
 
     void PerformCommissioningStep(DeviceProxy * device, CommissioningStage step, CommissioningParameters & params,
                                   CommissioningDelegate * delegate, EndpointId endpoint, Optional<System::Clock::Timeout> timeout);
@@ -1110,6 +1118,9 @@ private:
     // Sends commissioning complete callbacks to the delegate depending on the status. Sends
     // OnCommissioningComplete and either OnCommissioningSuccess or OnCommissioningFailure depending on the given completion status.
     void SendCommissioningCompleteCallbacks(NodeId nodeId, const CompletionStatus & completionStatus);
+
+    // Setter for mCommissioningStage
+    void SetCommissioningStage(CommissioningStage stage);
 
     // Extend the fail-safe before trying to do network-enable (since after that
     // point, for non-concurrent-commissioning devices, we may not have a way to
