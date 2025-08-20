@@ -2423,6 +2423,7 @@ void DeviceCommissioner::FinishReadingCommissioningInfo(const CommissioningParam
     AccumulateErrors(err, ParseFabrics(info));
     AccumulateErrors(err, ParseICDInfo(info));
     AccumulateErrors(err, ParseExtraCommissioningInfo(info, params));
+    AccumulateErrors(err, ParsePowerSource(info));
 
     if (mPairingDelegate != nullptr && err == CHIP_NO_ERROR)
     {
@@ -2488,6 +2489,17 @@ CHIP_ERROR DeviceCommissioner::ParseGeneralCommissioningInfo(ReadCommissioningIn
     {
         ChipLogError(Controller, "Ignoring failure to read IsCommissioningWithoutPower: %" CHIP_ERROR_FORMAT, err.Format());
         info.general.isCommissioningWithoutPower = false; // default to false, not a fatal error
+
+
+
+        ChipLogProgress(Controller, "isCommissioningWithoutPower attribute NOT available");
+        mIsCommissioningWithoutPowerAttributeAvailable = false;
+
+    } else {
+        ChipLogProgress(Controller, "isCommissioningWithoutPower attribute available");
+        mIsCommissioningWithoutPowerAttributeAvailable = true;
+
+
     }
 
     return return_err;
@@ -2708,6 +2720,54 @@ CHIP_ERROR DeviceCommissioner::ParseFabrics(ReadCommissioningInfo & info)
     }
 
     return return_err;
+}
+
+CHIP_ERROR DeviceCommissioner::ParsePowerSource(ReadCommissioningInfo & info)
+{
+    using namespace chip::app::Clusters::PowerSource;
+    using namespace chip::app::Clusters::PowerSource::Attributes;
+
+    CHIP_ERROR err;
+
+    if (mIsCommissioningWithoutPowerAttributeAvailable) {
+        ChipLogProgress(Controller, "IsCommissioningWithoutPowerAttributeAvailable => Ignoring PowerSourceStatus");
+        return CHIP_NO_ERROR;
+    }
+
+    // Read Status of power source Cluster
+    err = mAttributeCache->Get<Status::TypeInfo>(kRootEndpointId, info.power.status);
+    if (err == CHIP_NO_ERROR)
+    {
+        info.general.isCommissioningWithoutPower = (mNFCCommissioning && (info.power.status == app::Clusters::PowerSource::PowerSourceStatusEnum::kUnavailable)) ? true : false;
+
+        switch(info.power.status)
+        {
+            case app::Clusters::PowerSource::PowerSourceStatusEnum::kUnspecified:
+                ChipLogProgress(Controller, "PowerSourceStatus: Unspecified");
+                break;
+            case app::Clusters::PowerSource::PowerSourceStatusEnum::kActive:
+                ChipLogProgress(Controller, "PowerSourceStatus: Active");
+                break;
+            case app::Clusters::PowerSource::PowerSourceStatusEnum::kStandby:
+                ChipLogProgress(Controller, "PowerSourceStatus: Standby");
+                break;
+            case app::Clusters::PowerSource::PowerSourceStatusEnum::kUnavailable:
+                ChipLogProgress(Controller, "PowerSourceStatus: Power not available");
+                break;
+            default:
+                ChipLogError(Controller, "Invalid PowerSourceStatusEnum value: %d", (int) info.power.status);
+                break;
+        }
+    }
+    else
+    {
+        ChipLogProgress(Controller, "Power source status not found");
+        // This key is optional so not an error
+        err = CHIP_NO_ERROR;
+        info.general.isCommissioningWithoutPower = false;
+    }
+
+    return err;
 }
 
 CHIP_ERROR DeviceCommissioner::ParseICDInfo(ReadCommissioningInfo & info)

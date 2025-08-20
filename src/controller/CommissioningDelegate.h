@@ -773,6 +773,12 @@ struct GeneralCommissioningInfo
     bool isCommissioningWithoutPower = false;
 };
 
+struct PowerSourceClusterInfo
+{
+    app::Clusters::PowerSource::PowerSourceStatusEnum status =
+        app::Clusters::PowerSource::PowerSourceStatusEnum::kUnspecified;
+};
+
 // ICDManagementClusterInfo is populated when the controller reads information from
 // the ICD Management cluster, and is used to communicate that information.
 struct ICDManagementClusterInfo
@@ -808,6 +814,7 @@ struct ReadCommissioningInfo
     NetworkClusters network;
     BasicClusterInfo basic;
     GeneralCommissioningInfo general;
+    PowerSourceClusterInfo power;
     bool requiresUTC                  = false;
     bool requiresTimeZone             = false;
     bool requiresDefaultNTP           = false;
