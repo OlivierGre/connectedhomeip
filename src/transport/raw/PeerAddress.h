@@ -64,12 +64,14 @@ enum class Type : uint8_t
 class PeerAddress
 {
 public:
-    constexpr PeerAddress() : mTransportType(Type::kUndefined), mId{ .mRemoteId = kUndefinedNodeId } {}
+    static constexpr uint16_t kUndefinedNFCShortId = 0xFFFF;
+
+    constexpr PeerAddress() : mTransportType(Type::kUndefined), mRemoteId(kUndefinedNodeId), mNFCShortId(kUndefinedNFCShortId) { ChipLogProgress(DeviceLayer, "AAAA Constructor1"); }
     constexpr PeerAddress(const Inet::IPAddress & addr, Type type) :
-        mIPAddress(addr), mTransportType(type), mId{ .mRemoteId = kUndefinedNodeId }
-    {}
-    constexpr PeerAddress(Type type) : mTransportType(type), mId{ .mRemoteId = kUndefinedNodeId } {}
-    constexpr PeerAddress(Type type, NodeId remoteId) : mTransportType(type), mId{ .mRemoteId = remoteId } {}
+        mIPAddress(addr), mTransportType(type), mRemoteId(kUndefinedNodeId), mNFCShortId(kUndefinedNFCShortId)
+    { ChipLogProgress(DeviceLayer, "AAAA Constructor2"); }
+    constexpr PeerAddress(Type type) : mTransportType(type), mRemoteId(kUndefinedNodeId), mNFCShortId(kUndefinedNFCShortId) { ChipLogProgress(DeviceLayer, "AAAA Constructor3");}
+    constexpr PeerAddress(Type type, NodeId remoteId) : mTransportType(type), mRemoteId(remoteId), mNFCShortId(kUndefinedNFCShortId) { ChipLogProgress(DeviceLayer, "AAAA Constructor4"); }
 
     constexpr PeerAddress(PeerAddress &&)        = default;
     constexpr PeerAddress(const PeerAddress &)   = default;
@@ -83,10 +85,10 @@ public:
         return *this;
     }
 
-    NodeId GetRemoteId() const { return mId.mRemoteId; }
+    NodeId GetRemoteId() const { return mRemoteId; }
 
     // NB: 0xFFFF is not allowed for NFC ShortId.
-    uint16_t GetNFCShortId() const { return mId.mNFCShortId; }
+    uint16_t GetNFCShortId() const { return mNFCShortId; }
 
     Type GetTransportType() const { return mTransportType; }
     PeerAddress & SetTransportType(Type type)
@@ -181,7 +183,7 @@ public:
             snprintf(buf, bufSize, "BLE");
             break;
         case Type::kNfc:
-            snprintf(buf, bufSize, "NFC:%d", mId.mNFCShortId);
+            snprintf(buf, bufSize, "NFC:%d", mNFCShortId);
             break;
         default:
             snprintf(buf, bufSize, "ERROR");
@@ -195,8 +197,8 @@ public:
 
     static constexpr PeerAddress BLE() { return PeerAddress(Type::kBle); }
 
-    // NB: 0xFFFF is not allowed for NFC ShortId.
-    static constexpr PeerAddress NFC() { return PeerAddress(kUndefinedNFCShortId()); }
+    // NB: 0xFFFF (= kUndefinedNFCShortId) is not allowed for NFC ShortId.
+    static constexpr PeerAddress NFC() { return PeerAddress(kUndefinedNFCShortId); }
     static constexpr PeerAddress NFC(const uint16_t shortId) { return PeerAddress(shortId); }
 
     static PeerAddress UDP(const Inet::IPAddress & addr) { return PeerAddress(addr, Type::kUdp); }
@@ -245,7 +247,7 @@ public:
     }
 
 private:
-    constexpr PeerAddress(uint16_t shortId) : mTransportType(Type::kNfc), mId{ .mNFCShortId = shortId } {}
+    constexpr PeerAddress(uint16_t shortId) : mTransportType(Type::kNfc), mRemoteId(kUndefinedNodeId), mNFCShortId(shortId) { ChipLogProgress(DeviceLayer, "AAAA Constructor5"); }
 
     static PeerAddress FromString(char * addrStr, uint16_t port, Type type)
     {
@@ -255,18 +257,12 @@ private:
         return PeerAddress(addr, type).SetPort(port).SetInterface(interfaceId);
     }
 
-    static constexpr uint16_t kUndefinedNFCShortId() { return 0xFFFF; }
-
     Inet::IPAddress mIPAddress   = {};
     Type mTransportType          = Type::kUndefined;
     uint16_t mPort               = CHIP_PORT; ///< Relevant for UDP data sending.
     Inet::InterfaceId mInterface = Inet::InterfaceId::Null();
-
-    union Id
-    {
-        NodeId mRemoteId;
-        uint16_t mNFCShortId;
-    } mId;
+    NodeId mRemoteId             = kUndefinedNodeId;
+    uint16_t mNFCShortId         = kUndefinedNFCShortId;
 };
 
 } // namespace Transport

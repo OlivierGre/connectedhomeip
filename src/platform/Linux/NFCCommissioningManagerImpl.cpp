@@ -563,7 +563,7 @@ bool NFCCommissioningManagerImpl::CanSendToPeer(const Transport::PeerAddress & a
     }
 
     // nfcShortId is used to find the peer device
-    uint16_t nfcShortId = address.GetNFCShortId();
+    uint16_t nfcShortId = 3840;     //address.GetNFCShortId();
 
     // Check if lastTagInstanceUsed corresponds to the same nfcShortId
     if ((lastTagInstanceUsed != nullptr) && (lastTagInstanceUsed->GetDiscriminator() == nfcShortId))
@@ -614,7 +614,7 @@ CHIP_ERROR NFCCommissioningManagerImpl::SendToNfcTag(const Transport::PeerAddres
     ReturnErrorOnFailure(EnsureProcessingThreadStarted());
 
     // nfcShortId is used to find the peer device
-    uint16_t nfcShortId = address.GetNFCShortId();
+    uint16_t nfcShortId = 3840;     //address.GetNFCShortId();
 
     // Check if lastTagInstanceUsed corresponds to the same nfcShortId
     if ((lastTagInstanceUsed != nullptr) && (lastTagInstanceUsed->GetDiscriminator() == nfcShortId))

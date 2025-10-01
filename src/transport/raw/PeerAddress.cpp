@@ -28,6 +28,8 @@ namespace Transport {
 
 bool PeerAddress::operator==(const PeerAddress & other) const
 {
+    ChipLogProgress(DeviceLayer, "AAAA PeerAddress::operator==");
+
     // Compare common fields
     if (mTransportType != other.mTransportType)
     {
@@ -38,14 +40,14 @@ bool PeerAddress::operator==(const PeerAddress & other) const
     switch (mTransportType)
     {
     case Type::kNfc:
-        return (mId.mNFCShortId == other.mId.mNFCShortId);
+        return (mNFCShortId == other.mNFCShortId);
 
     case Type::kUdp:
     case Type::kTcp:
         return (mIPAddress == other.mIPAddress && mPort == other.mPort && mInterface == other.mInterface);
 
     case Type::kWiFiPAF:
-        return (mId.mRemoteId == other.mId.mRemoteId);
+        return (mRemoteId == other.mRemoteId);
 
     case Type::kBle:
     default:

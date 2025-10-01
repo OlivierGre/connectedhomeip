@@ -256,6 +256,8 @@ CHIP_ERROR PASESession::Pair(SessionManager & sessionManager, uint32_t peerSetUp
                              SessionEstablishmentDelegate * delegate)
 {
     MATTER_TRACE_SCOPE("Pair", "PASESession");
+    ChipLogProgress(Controller, "PASESession::Pair");
+
     VerifyOrReturnError(exchangeCtxt != nullptr, CHIP_ERROR_INVALID_ARGUMENT);
     CHIP_ERROR err = Init(sessionManager, peerSetUpPINCode, delegate);
     SuccessOrExit(err);
@@ -344,6 +346,7 @@ CHIP_ERROR PASESession::ReadSessionParamsIfPresent(const TLV::Tag & expectedSess
 CHIP_ERROR PASESession::SendPBKDFParamRequest()
 {
     MATTER_TRACE_SCOPE("SendPBKDFParamRequest", "PASESession");
+    ChipLogProgress(Controller, "PASESession::SendPBKDFParamRequest");
 
     VerifyOrReturnError(GetLocalSessionId().HasValue(), CHIP_ERROR_INCORRECT_STATE);
 
@@ -381,6 +384,7 @@ CHIP_ERROR PASESession::SendPBKDFParamRequest()
     // Update commissioning hash with the pbkdf2 param request that's being sent.
     ReturnErrorOnFailure(mCommissioningHash.AddData(ByteSpan{ req->Start(), req->DataLength() }));
 
+    ChipLogProgress(Controller, "SendMessage");
     ReturnErrorOnFailure(mExchangeCtxt.Value()->SendMessage(MsgType::PBKDFParamRequest, std::move(req),
                                                             SendFlags(SendMessageFlags::kExpectResponse)));
 

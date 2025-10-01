@@ -113,25 +113,26 @@ CHIP_ERROR IssueX509Cert(uint32_t now, uint32_t validity, ChipDN issuerDn, ChipD
             paddedDerSpan = MutableByteSpan{ paddedDerBuf.Get(), kMaxDERCertLength + kMaxCertPaddingLength };
             paddedTlvSpan = MutableByteSpan{ paddedTlvBuf.Get(), kMaxCHIPCertLength + kMaxCertPaddingLength };
 
+            /*
             Optional<FutureExtension> futureExt;
             FutureExtension ext = { ByteSpan(sOID_Extension_SubjectAltName),
                                     ByteSpan(reinterpret_cast<uint8_t *>(fillerBuf.Get()), paddingLen) };
             futureExt.SetValue(ext);
-
+            */
             switch (certType)
             {
             case CertType::kRcac: {
-                X509CertRequestParams rcacRequest = { serialNumber, now, now + validity, desiredDn, desiredDn, futureExt };
+                X509CertRequestParams rcacRequest = { serialNumber, now, now + validity, desiredDn, desiredDn /*, futureExt */};
                 ReturnErrorOnFailure(NewRootX509Cert(rcacRequest, issuerKeypair, paddedDerSpan));
                 break;
             }
             case CertType::kIcac: {
-                X509CertRequestParams icacRequest = { serialNumber, now, now + validity, desiredDn, issuerDn, futureExt };
+                X509CertRequestParams icacRequest = { serialNumber, now, now + validity, desiredDn, issuerDn /*, futureExt */};
                 ReturnErrorOnFailure(NewICAX509Cert(icacRequest, subjectPublicKey, issuerKeypair, paddedDerSpan));
                 break;
             }
             case CertType::kNoc: {
-                X509CertRequestParams nocRequest = { serialNumber, now, now + validity, desiredDn, issuerDn, futureExt };
+                X509CertRequestParams nocRequest = { serialNumber, now, now + validity, desiredDn, issuerDn /*, futureExt */};
                 ReturnErrorOnFailure(NewNodeOperationalX509Cert(nocRequest, subjectPublicKey, issuerKeypair, paddedDerSpan));
                 break;
             }

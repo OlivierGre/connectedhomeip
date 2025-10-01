@@ -733,6 +733,9 @@ CHIP_ERROR DeviceCommissioner::EstablishPASEConnection(NodeId remoteDeviceId, Re
     VerifyOrExit(mState == State::Initialized, err = CHIP_ERROR_INCORRECT_STATE);
     VerifyOrExit(mDeviceInPASEEstablishment == nullptr, err = CHIP_ERROR_INCORRECT_STATE);
 
+    ChipLogProgress(Controller, "params.GetDiscriminator() = %d", params.GetDiscriminator());
+    ChipLogProgress(Controller, "params.GetSetupDiscriminator().value() = %d", params.GetSetupDiscriminator().value());
+
     // TODO(#13940): We need to specify the peer address for BLE transport in bindings.
     if (params.GetPeerAddress().GetTransportType() == Transport::Type::kBle ||
         params.GetPeerAddress().GetTransportType() == Transport::Type::kUndefined)
@@ -805,6 +808,7 @@ CHIP_ERROR DeviceCommissioner::EstablishPASEConnection(NodeId remoteDeviceId, Re
 #if CONFIG_NETWORK_LAYER_BLE
     if (params.GetPeerAddress().GetTransportType() == Transport::Type::kBle)
     {
+        ChipLogProgress(Controller, "Transport::Type::kBle");
         if (params.HasConnectionObject())
         {
             SuccessOrExit(err = mSystemState->BleLayer()->NewBleConnectionByObject(params.GetConnectionObject()));
@@ -839,6 +843,7 @@ CHIP_ERROR DeviceCommissioner::EstablishPASEConnection(NodeId remoteDeviceId, Re
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFIPAF
     if (params.GetPeerAddress().GetTransportType() == Transport::Type::kWiFiPAF)
     {
+        ChipLogProgress(Controller, "Transport::Type::kBle");
         if (DeviceLayer::ConnectivityMgr().GetWiFiPAF()->GetWiFiPAFState() != WiFiPAF::State::kConnected)
         {
             ChipLogProgress(Controller, "WiFi-PAF: Subscribing to the NAN-USD devices, nodeId: %lu",
@@ -860,6 +865,8 @@ CHIP_ERROR DeviceCommissioner::EstablishPASEConnection(NodeId remoteDeviceId, Re
         }
     }
 #endif
+
+    ChipLogProgress(Controller, "CreateUnauthenticatedSession");
     session = mSystemState->SessionMgr()->CreateUnauthenticatedSession(params.GetPeerAddress(), params.GetMRPConfig());
     VerifyOrExit(session.HasValue(), err = CHIP_ERROR_NO_MEMORY);
 
