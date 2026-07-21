@@ -56,6 +56,8 @@
 #     quiet: true
 # === END CI TEST ARGUMENTS ===
 
+import logging
+
 from matter.testing.decorators import async_test_body
 # TODO: Enable 10.5 in CI once the door lock OTA requestor problem is sorted.
 from matter.testing.device_conformance_tests import DeviceConformanceTests
@@ -90,6 +92,19 @@ class TC_DeviceConformance(DeviceConformanceTests):
         self.problems.extend(problems)
         if not success:
             self.fail_current_test("Problems with cluster revision on at least one cluster")
+
+    def steps_TC_IDM_10_3N(self):
+        logging.error("steps_TC_IDM_10_3N called")
+        return [
+            TestStep(1, "Detecting the NFC Tag and reading the Payload", is_commissioning=False),
+        ]
+
+    @async_test_body
+    async def test_TC_IDM_10_3N(self):
+        logging.error("test_TC_IDM_10_3N called")
+        self.wait_for_user_input(prompt_msg="Put the DUT in commissionable mode, bring its NFC interface close to the NFC reader"
+                                 " and keep the DUT unpowered")
+        self.step(1)
 
     def test_TC_IDM_10_5(self):
         fail_on_extra_clusters = self.user_params.get("fail_on_extra_clusters", True)
