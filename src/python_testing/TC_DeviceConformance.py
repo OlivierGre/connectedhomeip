@@ -56,10 +56,16 @@
 #     quiet: true
 # === END CI TEST ARGUMENTS ===
 
+import matter.testing.nfc
+import logging
+
+from mobly import asserts
+
 from matter.testing.decorators import async_test_body
 # TODO: Enable 10.5 in CI once the door lock OTA requestor problem is sorted.
 from matter.testing.device_conformance_tests import DeviceConformanceTests
 from matter.testing.runner import TestStep, default_matter_test_main
+from matter.setup_payload.setup_payload import SetupPayload
 
 
 class TC_DeviceConformance(DeviceConformanceTests):
@@ -84,12 +90,60 @@ class TC_DeviceConformance(DeviceConformanceTests):
             self.fail_current_test("Problems with conformance")
 
     def test_TC_IDM_10_3(self):
+        logging.error("test_TC_IDM_10_3 called")
         ignore_in_progress_test_event_only_disallowed_for_certification = self.user_params.get(
             "ignore_in_progress_test_event_only_disallowed_for_certification", False)
         success, problems = self.check_revisions(ignore_in_progress_test_event_only_disallowed_for_certification)
         self.problems.extend(problems)
         if not success:
             self.fail_current_test("Problems with cluster revision on at least one cluster")
+
+    def steps_TC_IDM_10_3N(self):
+        logging.error("steps_TC_IDM_10_3N called")
+        return [
+            TestStep(1, "Detecting the NFC Tag and reading the Payload", is_commissioning=False),
+            TestStep(2, 'Run test TC_IDM_10_3 over NFC commissioning channel')
+        ]
+
+    @async_test_body
+    async def test_TC_IDM_10_3N(self):
+        logging.error("test_TC_IDM_10_3N called")
+        self.wait_for_user_input(prompt_msg="Put the DUT in commissionable mode, bring its NFC interface close to the NFC reader"
+                                 " and keep the DUT powered")
+
+        # Step 1: Here we check if the Tag is connected to the Host machine and read the NFC Tag data
+        self.step(1)
+
+        nfc_reader_index = self.user_params.get("NFC_Reader_index", 0)
+        reader = matter.testing.nfc.NFCReader(nfc_reader_index)
+
+        nfc_tag_data = reader.read_nfc_tag_data()
+        asserts.assert_true(
+            reader.is_onboarding_data(nfc_tag_data),
+            f"'{nfc_tag_data}' is not a valid Matter URI"
+        )
+        self.matter_test_config.qr_code_content.append(nfc_tag_data)
+
+        # The NFC tag data is parsed and checked if the device supports NFC commissioning and commission begins
+        payload = SetupPayload().ParseQrCode(nfc_tag_data)
+
+        asserts.assert_true(payload.supports_nfc_commissioning, "Device does not Support NFC Commissioning")
+
+        commissioning_method = self.matter_test_config.in_test_commissioning_method
+        asserts.assert_is_not_none(commissioning_method, "in_test_commissioning_method must not be None")
+        asserts.assert_true(
+            str(commissioning_method).startswith("nfc-"),
+            f"Expected in_test_commissioning_method to start with 'nfc-', got: {commissioning_method}"
+        )
+        self.matter_test_config.commissioning_method = commissioning_method
+
+        # Force a commissioning over NTL
+        commissioning_success = await self.commission_ntl_device(payload)
+
+        asserts.assert_true(commissioning_success, "Device Commissioning using nfc transport has failed")
+
+        self.step(2)                # Execute test_TC_IDM_10_3 over NTL
+        self.test_TC_IDM_10_3()
 
     def test_TC_IDM_10_5(self):
         fail_on_extra_clusters = self.user_params.get("fail_on_extra_clusters", True)
